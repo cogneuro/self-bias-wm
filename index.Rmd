@@ -30,4 +30,4 @@ The self-prioritization effect refers to the tendency to process self-associated
 
 
 ***
-[[View on Github `r icon_style(fontawesome("github-alt", style = "brands"), scale = 4, fill = "#56B4E9")`](https://github.com/cogneuro/MemUpdatingPE)]{style="float:right"}
+[[View on Github `r icon_style(fontawesome("github-alt", style = "brands"), scale = 4, fill = "#56B4E9")`](https://github.com/cogneuro/self-bias-wm)]{style="float:right"}
