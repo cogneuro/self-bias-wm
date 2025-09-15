@@ -37,7 +37,7 @@ set.seed(1234567) # for reproducibility
 options(dplyr.summarise.inform=FALSE) # suppress warning in regards to regrouping 
 options(knitr.kable.NA = '')
 options("scipen" = 100) # https://rfriend.tistory.com/224
-nIter <- 1e4 # Monte Carlo simulations for error < 1%. default = 1e4
+nIter <- 1e6 # Monte Carlo simulations for error < 1%. default = 1e4
 tOff <- 2.5 # RTtrimming
 klippy::klippy()
 
@@ -449,9 +449,9 @@ The simulation results indicated that a minimum of 20 participants would be suff
 Subjects completed an <u>associative learning task</u> followed by a <u>working memory task</u>. 
 
 (A) The eight abstract shapes used in the tasks. These shapes were evenly sampled from the Validated Circular Shape (VCS) space ([Li et al., 2020](https://psycnet.apa.org/record/2019-58626-001)), designed to approximate the subjective similarity structure of the octagonal layout employed by Yin et al. (2019). 
-(B) The figure shows two successive example trials in the <u>associative learning task</u>. Each trial presented a red or blue shape with a superimposed social label—“당신” (the Korean word for “you”) or “타인” (the Korean word for “stranger”). Subjects were asked to judge whether the shape color matched the color associated with the referent of the label (self or other) prior to the experiment. The shape’s form was irrelevant to the task and was included solely to familiarize subjects with the shapes used in the later working memory task. Subjects responded using their right hand by pressing a button corresponding to either “match” or “nonmatch.” We refer to this as the **label-color matching judgment**.
+(B) The figure shows two successive example trials in the <u>associative learning task</u>. Each trial presented a red or blue shape with a superimposed social label—“당신” (the Korean word for “you”) or “타인” (the Korean word for “stranger”). Subjects were asked to judge whether the shape color matched the color associated with the referent of the label (self or other) prior to the experiment. The shape’s form was irrelevant to the task and was included solely to familiarize subjects with the shapes used in the later working memory task. Subjects responded using their right hand by pressing a button corresponding to either “match” or “nonmatch.” We refer to this as the **label-matching judgment**.
 
-(C) Each trial of the <u>working memory task</u> presented a red shape, a blue shape, and a checkerboard pattern in sequence. In half of the trials, the red shape appeared first, and the blue shape appeared first in the other half. Subjects were required to briefly retain the samples' colors and shapes in working memory. After a 1-second delay, a gray probe shape appeared on the screen, and subjects were asked to make a speeded and accurate judgment as to whether the probe matched either of the two previously presented samples. In 25% of the trials, the probe matched the first sample; in another 25%, it matched the second sample; and in the remaining 50%, it was a novel shape randomly drawn from the other six items in the shape set. Subjects responded using their left hand by pressing a button labeled “old” or “new.” We refer to this as the **shape-matching response**. On trials where the probe matched one of the two samples, a social label was superimposed on the probe immediately after the shape-matching response. Subjects were then asked to judge whether the color associated with the probed sample matched the color previously associated with the referent of the label (self or other). They responded using their right hand by pressing a button labeled “match” or “nonmatch.” We refer to this as another **label-color matching response**.
+(C) Each trial of the <u>working memory task</u> presented a red shape, a blue shape, and a checkerboard pattern in sequence. In half of the trials, the red shape appeared first, and the blue shape appeared first in the other half. Subjects were required to briefly retain the samples' colors and shapes in working memory. After a 1-second delay, a gray probe shape appeared on the screen, and subjects were asked to make a speeded and accurate judgment as to whether the probe matched either of the two previously presented samples. In 25% of the trials, the probe matched the first sample; in another 25%, it matched the second sample; and in the remaining 50%, it was a novel shape randomly drawn from the other six items in the shape set. Subjects responded using their left hand by pressing a button labeled “old” or “new.” We refer to this as the **shape-matching response**. On trials where the probe matched one of the two samples, a social label was superimposed on the probe immediately after the shape-matching response. Subjects were then asked to judge whether the color associated with the probed sample matched the color previously associated with the referent of the label (self or other). They responded using their right hand by pressing a button labeled “match” or “nonmatch.” We refer to this as another **label-matching response**.
 
 ```{r, fig.height=4}
 ggdraw() + draw_image("fig/E1task.png")
@@ -1388,10 +1388,10 @@ tmp %>%
 
 # Correlation
 
-Associative learning task의 label-color matching RT, Working memory task의 shape-matching RT와 label-color matching RT에서 계산한 self-bias의 상관을 계산하였다. 
+Associative learning task의 label-matching RT, Working memory task의 shape-matching RT와 label-matching RT에서 계산한 self-bias의 상관을 계산하였다. 
 
 ```{r, collapse=TRUE, eval=TRUE, fig.height=6}
-# Associative Learning Task: Label-Color Matching
+# Associative Learning Task: Label-Matching
 asc.effect <- s.rt %>%
   unite("temp", c("Matching", "Label")) %>%
   pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
@@ -1410,7 +1410,7 @@ shape.effect <- dst %>%
   mutate(wmShape = Stranger - Self) %>% 
   select(SN, wmShape)
 
-# Working Memory Task: Label-Color Matching
+# Working Memory Task: Label-Matching
 tst.effect <- dpt %>%
   unite("temp", c("Matching", "Label")) %>%
   pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
