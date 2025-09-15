@@ -1,0 +1,1472 @@
+---
+title: "Experiment 1"
+subtitle: "Self-Priority Effects on Nonspatial Working Memory"
+author: "Woojeong Lee & Do-Joon Yi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapse: false
+      smooth_scroll: false
+    number_sections: true
+    theme: cosmo 
+    highlight: haddock
+    code_folding: hide
+mainfont: Noto Sans CJK KR
+---
+
+```{css, echo=FALSE}
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+```
+
+
+```{r, collapse=TRUE}
+pacman::p_load(tidyverse, psych, knitr, rstatix, BayesFactor, Superpower)
+pacman::p_load(ggpubr, see, cowplot)
+pacman::p_load_gh("thomasp85/patchwork", "rlesur/klippy")
+if (!requireNamespace("Rmisc", quietly = TRUE)) install.packages("Rmisc") # never load directly
+
+set.seed(1234567) # for reproducibility
+options(dplyr.summarise.inform=FALSE) # suppress warning in regards to regrouping 
+options(knitr.kable.NA = '')
+options("scipen" = 100) # https://rfriend.tistory.com/224
+nIter <- 1e4 # Monte Carlo simulations for error < 1%. default = 1e4
+tOff <- 2.5 # RTtrimming
+klippy::klippy()
+
+# Excluding Ss
+rm_subject <- function(df, rx){
+  for (i in rx){
+    df <- df %>% filter(SN != i) %>% droplevels()
+  }
+  cat(sprintf('%d removed & %d left', 
+              length(unique(rx)),
+              length(unique(df$SN))))
+  return(df)
+}
+
+# Plot for outlier check
+# stat summary plot to 25% quartile and 75% quartile
+# https://bit.ly/3iFpV07
+single_raincloud_plot <- function(df, Y, xMin, xMax, xBy, xLab){
+  df %>% ggplot(aes(x = 1, y = Y)) +
+    geom_violinhalf(flip = c(1,3), width = 0.5, color = "grey70", fill = "gray70") +
+    # geom_half_violin(aes(y = Y), side = "r", 
+    #                  color = "grey70", fill = "grey70") +
+    geom_point(aes(0.8, Y), size = 1.5,
+               color = "grey50", fill = "grey50", alpha = .5,
+               position = position_jitter(width = 0.15, height = 0)) +
+    geom_boxplot(width=0.05, alpha = 0.5, outliers = FALSE) +
+    scale_y_continuous(breaks=seq(xMin,xMax,by=xBy)) +
+    coord_flip(ylim = c(xMin, xMax), clip = "on") +
+    labs(y = xLab) +
+    theme_bw(base_size = 18) +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.title.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.y = element_blank(),
+          aspect.ratio = .3)
+}
+
+# rgb(220, 50, 32, maxColorValue = 255) # red = #DC3220
+# rgb(0, 90, 181, maxColorValue = 255) # blue = #005AB5
+
+# Plot for results
+plotMatchLabel <- function(df, ylabel, ymin, ymax, yby, 
+                           isRT, ymin2, ymax2, yby2, flo = 0.1) {
+  names(df)[ncol(df)] <- "DV" # assuming DV on the last column
+  
+  df.g <- df %>%
+    Rmisc::summarySEwithin(measurevar = 'DV', idvar = 'SN',
+                           withinvars = c("Matching", "Label"))
+  
+  df.w <- df %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = DV)
+  
+  doff <- 0.03
+  tmp <- runif(nrow(df.w), -doff, doff)
+  spd1 <- rep(-0.14,nrow(df.w)) + tmp
+  spd2 <- rep( 0.14,nrow(df.w)) + tmp
+  
+  F1 <- ggplot() +
+    geom_bar(data=df.g, aes(x = Matching, y = DV, fill = Label), alpha = .6,
+             stat="identity", width=0.7, linewidth=0.5, color="black", 
+             position=position_dodge(.8)) +
+    # scale_fill_manual(values=c('#E69F00', '#56B4E9'),
+    #                   labels=c("Self", "Stranger")) +
+    scale_fill_manual(values=c('#DC3220', '#005AB5'),
+                      labels=c("Self", "Stranger")) +
+    geom_segment(data=df.w, color="black", alpha = 0.3, 
+                 aes(x=1+spd1, y=Match_Self, xend=1+spd2, yend=Match_Stranger)) +
+    geom_segment(data=df.w, color="black", alpha = 0.3, 
+                 aes(x=2+spd1, y=Nonmatch_Self, xend=2+spd2, yend=Nonmatch_Stranger)) +
+    geom_linerange(data=df.g, aes(x=Matching, ymin=DV-ci, ymax=DV+ci, group=Label),
+                   linewidth=1, position=position_dodge(0.8)) +
+    labs(x = "Matching", y = ylabel, fill='Label ') +
+    coord_cartesian(ylim = c(ymin, ymax), clip = "on") +
+    scale_y_continuous(breaks=seq(ymin, ymax, by = yby)) +
+    theme_bw(base_size = 18) +
+    theme(legend.position="top",
+          legend.spacing.x = unit(0.5, 'lines'),
+          legend.margin = margin(0, 0, 0, 0),
+          legend.background = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+  
+  if (isRT) { # Boolean: Nonmatch - Match
+    df2.w <- df.w %>% 
+      mutate(Self = Nonmatch_Self - Match_Self,
+             Stranger = Nonmatch_Stranger - Match_Stranger) %>% 
+      select(SN, Self, Stranger)
+  } else {
+    df2.w <- df.w %>% 
+      mutate(Self = Match_Self - Nonmatch_Self,
+             Stranger = Match_Stranger - Nonmatch_Stranger) %>% 
+      select(SN, Self, Stranger)
+  }
+  
+  df2 <- df2.w %>% 
+    pivot_longer(cols = c(Self, Stranger), names_to = "Identity", values_to = "SPE")
+  
+  df2.g <- df2 %>% 
+    mutate(Identity = factor(Identity)) %>% 
+    Rmisc::summarySEwithin(measurevar = "SPE", withinvars = "Identity", idvar = "SN")
+  
+  moff <- 0.1
+  doff <- 0.05
+  vpd <- rep(c(1-moff, 2+moff), nrow(df2)/2) # violin position dodge
+  dpd <- rep(c(1+moff, 2-moff), nrow(df2)/2) + # dot position dodge
+    rep(runif(nrow(df2)/2, -doff, doff), each=2)
+  
+  F2 <- cbind(df2, vpd, dpd) %>% 
+    ggplot(aes(x = Identity, y = SPE, group = Identity)) + 
+    geom_pointrange(data=df2.g, aes(x = Identity, ymin = SPE-ci, ymax = SPE+ci),
+                    linewidth = 1, size = 0.5, color = "black") +
+    geom_point(data=df2.g, aes(x = Identity, y = SPE),
+               size=3, color = "black", show.legend = FALSE) +
+    geom_hline(yintercept = 0) +
+    geom_violinhalf(aes(x = vpd, y = SPE, group = Identity),
+                    flip = c(1,3), width = 0.7, fill = "gray70") + 
+    # geom_point(aes(x = dpd, y = SPE, group = SN), alpha = 0.3) +
+    geom_line(aes(x = dpd, y = SPE, group = SN), color = "black", alpha = 0.3) +
+    labs(x = "Identity",
+         y = ifelse (isRT, "Nonmatch - Match", "Match - Nonmatch")) +
+    coord_cartesian(ylim = c(ymin2, ymax2), clip = "on") +
+    scale_y_continuous(labels = scales::number_format(accuracy = flo),
+                       breaks=seq(ymin2, ymax2, by = yby2)) +
+    theme_bw(base_size = 18) +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+  
+  F1 + F2 + plot_layout(nrow = 1, widths = c(2, 1.2))
+}
+
+plotOrderIdentity <- function(df, ylabel, ymin, ymax, yby, 
+                              OminusS, ymin2, ymax2, yby2, flo = 0.1) {
+  # assuming 1-4: SN, Order, Label, DV
+  names(df)[ncol(df)] <- "DV" # assuming DV on the last column
+  
+  df.g <- df %>%
+    Rmisc::summarySEwithin(measurevar = 'DV', idvar = 'SN',
+                           withinvars = c("Order", "Identity"))
+  
+  df.w <- df %>%
+    unite("temp", c("Order", "Identity")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = DV)
+  
+  doff <- 0.03
+  tmp <- runif(nrow(df.w), -doff, doff)
+  spd1 <- rep(-0.14,nrow(df.w)) + tmp
+  spd2 <- rep( 0.14,nrow(df.w)) + tmp
+  
+  F1 <- ggplot() +
+    geom_bar(data=df.g, aes(x = Order, y = DV, fill = Identity), alpha = .6,
+             stat="identity", width=0.7, linewidth=0.5, color="black", 
+             position=position_dodge(.8)) +
+    # scale_fill_manual(values=c('#E69F00', '#56B4E9'),
+    #                   labels=c("Self", "Stranger")) +
+    scale_fill_manual(values=c('#DC3220', '#005AB5'),
+                      labels=c("Self", "Stranger")) +
+    geom_segment(data=df.w, color="black", alpha = 0.3, 
+                 aes(x=1+spd1, y=First_Self, xend=1+spd2, yend=First_Stranger)) +
+    geom_segment(data=df.w, color="black", alpha = 0.3, 
+                 aes(x=2+spd1, y=Second_Self, xend=2+spd2, yend=Second_Stranger)) +
+    geom_linerange(data=df.g, aes(x=Order, ymin=DV-ci, ymax=DV+ci, group=Identity),
+                   linewidth=1, position=position_dodge(0.8)) +
+    labs(x = "Order", y = ylabel, fill='Identity ') +
+    coord_cartesian(ylim = c(ymin, ymax), clip = "on") +
+    scale_y_continuous(breaks=seq(ymin, ymax, by = yby)) +
+    theme_bw(base_size = 18) +
+    theme(legend.position="top",
+          legend.spacing.x = unit(0.5, 'lines'),
+          legend.margin = margin(0, 0, 0, 0),
+          legend.background = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+  
+  if (OminusS) { # Boolean: Stranger - Self
+    df2.w <- df.w %>% 
+      mutate(First = First_Stranger - First_Self,
+             Second = Second_Stranger - Second_Self) %>% 
+      select(SN, First, Second)
+  } else {
+    df2.w <- df.w %>% 
+      mutate(First = First_Self - First_Stranger,
+             Second = Second_Self - Second_Stranger) %>% 
+      select(SN, First, Second)
+  }
+  
+  df2 <- df2.w %>% 
+    pivot_longer(cols = c(First, Second), names_to = "Order", values_to = "SPE")
+  
+  df2.g <- df2 %>% 
+    mutate(Order = factor(Order)) %>% 
+    Rmisc::summarySEwithin(measurevar = "SPE", withinvars = "Order", idvar = "SN")
+  
+  moff <- 0.1
+  doff <- 0.05
+  vpd <- rep(c(1-moff, 2+moff), nrow(df2)/2) # violin position dodge
+  dpd <- rep(c(1+moff, 2-moff), nrow(df2)/2) + # dot position dodge
+    rep(runif(nrow(df2)/2, -doff, doff), each=2)
+  
+  F2 <- cbind(df2, vpd, dpd) %>% 
+    ggplot(aes(x = Order, y = SPE, group = Order)) +
+    geom_pointrange(data=df2.g, aes(x = Order, ymin = SPE-ci, ymax = SPE+ci),
+                    linewidth = 1, size = 0.5, color = "black") +
+    geom_point(data=df2.g, aes(x = Order, y = SPE),
+               size=3, color = "black", show.legend = FALSE) +
+    geom_hline(yintercept = 0) +
+    geom_violinhalf(aes(x = vpd, y = SPE, group = Order),
+                    flip = c(1,3), width = 0.7, fill = "gray70") + 
+    # geom_point(aes(x = dpd, y = SPE, group = SN), alpha = 0.3) +
+    geom_line(aes(x = dpd, y = SPE, group = SN), color = "black", alpha = 0.3) +
+    labs(x = "Order",
+         y = ifelse (OminusS, "Stranger - Self", "Self - Stranger")) +
+    coord_cartesian(ylim = c(ymin2, ymax2), clip = "on") +
+    scale_y_continuous(labels = scales::number_format(accuracy = flo),
+                       breaks=seq(ymin2, ymax2, by = yby2)) +
+    theme_bw(base_size = 18) +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+  
+  F1 + F2 + plot_layout(nrow = 1, widths = c(2, 1.2))
+}
+```
+
+
+<br><br>
+
+---
+
+<br><br>
+
+
+# Power Analysis
+
+We determined the sample size using a simulation-based power analysis on the [dataset](https://osf.io/9ua8f) from [Yin et al. (2019, Experiment 2)](https://doi.org/10.1177/0956797618818483), who employed a 2 (order: first, second) × 3 (label: self, friend, stranger) within-subjects design. We excluded trials from the friend condition to match our 2 (order: first, second) × 2 (label: self, stranger) design. Based on the means, standard deviations, and inter-condition correlations of response times (RTs) from the reduced dataset, we estimated the sample size required to achieve 90% power to detect a main effect of label in a 2 × 2 repeated-measures ANOVA using the [Superpower](https://cran.r-project.org/web/packages/Superpower/vignettes/intro_to_superpower.html) package (Lakens & Caldwell, 2021).
+
+```{r, collapse=TRUE, fig.height=3}
+ef2 <- read.csv("data/Yin2019Exp2n27.csv", header = TRUE) %>% 
+  select(ExperimentName, 
+         Subject,
+         item1, # WM pic
+         item2, # WM pic
+         probe, # probe pic
+         matchWM,
+         order,
+         probe.ACC,
+         probe.RT,
+         condition,
+         judge, # label; loc_label
+         rSelf, # 1=Match, 2=Nonmatch
+         judge.ACC,
+         judge.RT) %>% 
+  rename(Group = ExperimentName,
+         SN = Subject,
+         Order = order,
+         wmACC = probe.ACC,
+         wmRT = probe.RT,
+         cond = condition,
+         speACC = judge.ACC,
+         speRT = judge.RT) %>% 
+  filter(matchWM == "mat") %>% 
+  separate_wider_delim("judge", delim = "_", names = c(NA, "Label")) %>% 
+  separate_wider_delim("Group", delim = "_", names = c(NA, "Grp", NA)) %>%
+  separate_wider_position("Grp", c("Self" = 1, "Friend" = 1, "Stranger" = 1)) %>%
+  separate_wider_position("item1", c("item1" = 1, "loc1" = 1)) %>%
+  separate_wider_position("item2", c("item2" = 1, "loc2" = 1)) %>%
+  separate_wider_position("probe", c(6, "probe" = 1)) %>% 
+  mutate("probed" = ifelse(probe == loc1, item1, item2)) %>% 
+  mutate("Condition" = ifelse(probed == Self, "self", ifelse(probed == Friend, "friend", "stranger"))) %>% 
+  mutate(speMatch = ifelse(rSelf==1, "match", "nonmatch")) %>% 
+  group_by(SN) %>% 
+  mutate(Trial = row_number()) %>% 
+  ungroup() %>% 
+  select(SN, Trial, Order, Condition, wmACC, wmRT, cond, Label, speMatch, speACC, speRT) %>% 
+  mutate(SN = factor(SN),
+         Order = factor(Order),
+         Condition = factor(Condition, 
+                            levels = c("self", "friend", "stranger"),
+                            labels = c("self", "friend", "stranger")),
+         speMatch = factor(speMatch))
+ef2
+length(unique(ef2$SN))
+
+ef2wt <- ef2 %>% 
+  filter(wmACC == 1) %>% 
+  group_by(SN, Order, Condition) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$wmRT)-2.5*sd(.$wmRT)),
+         ubound = map(data, ~mean(.$wmRT)+2.5*sd(.$wmRT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (wmRT < lbound)|(wmRT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup() %>%
+  select(SN, Order, Condition, wmRT)
+
+table(ef2wt$Order, ef2wt$SN)
+table(ef2wt$Condition, ef2wt$SN)
+
+ef2wt.ind <- ef2wt %>% 
+  group_by(SN, Order, Condition) %>% 
+  summarise(M = mean(wmRT)) %>% 
+  ungroup()
+
+ef2wt.ind %>% 
+  Rmisc::summarySEwithin(measurevar = 'M',
+                         withinvars = c("Order", "Condition"), idvar = 'SN') %>% 
+  mutate(wsci = paste0("[", round(M-ci, digits = 0), ", ",
+                       round(M+ci, digits = 0), "]")) %>% 
+  select(Order, Condition, N, M, sd, se, wsci) %>% 
+  rename(Mean = M, SD = sd, SE = se, '95% WSCI' = wsci)
+
+# 2x3 ANOVA
+anova_test(
+  data = ef2wt.ind, dv = M, wid = SN,
+  within = c(Order, Condition),
+  effect.size = "pes") %>% 
+  get_anova_table(correction = "none") # almost same as Yin's.
+
+# Excluding 'friend' --> 2x2 design
+e2 <- ef2 %>% 
+  filter(cond == "self_stranger" | cond == "stranger_self") %>%
+  # filter(Label=="self" | Label=="stranger") %>%
+  droplevels()
+
+table(e2$Order, e2$SN)
+table(e2$Condition, e2$SN)
+
+e2wt <- e2 %>% 
+  filter(wmACC == 1) %>% 
+  group_by(SN, Order, Condition) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$wmRT)-2.5*sd(.$wmRT)),
+         ubound = map(data, ~mean(.$wmRT)+2.5*sd(.$wmRT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (wmRT < lbound)|(wmRT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup() %>%
+  select(SN, Order, Condition, wmRT)
+
+table(e2wt$Order, e2wt$SN)
+table(e2wt$Condition, e2wt$SN)
+
+e2wt.ind <- e2wt %>% 
+  group_by(SN, Order, Condition) %>% 
+  summarise(M = mean(wmRT)) %>% 
+  ungroup()
+
+e2wt.ind %>% 
+  Rmisc::summarySEwithin(measurevar = 'M',withinvars = c("Order", "Condition"), idvar = 'SN') %>% 
+  mutate(wsci = paste0("[", round(M-ci, digits = 0), ", ",
+                       round(M+ci, digits = 0), "]")) %>% 
+  select(Order, Condition, N, M, sd, se, wsci) %>% 
+  rename(Mean = M, SD = sd, SE = se, '95% WSCI' = wsci)
+
+anova_test(
+  data = e2wt.ind, dv = M, wid = SN,
+  within = c(Order, Condition),
+  effect.size = "pes") %>% 
+  get_anova_table(correction = "none")
+
+# Superpower
+e2g <- e2wt.ind %>% 
+  group_by(Order, Condition) %>% 
+  summarise(mu = mean(M),
+            sd = sd(M))
+e2g
+
+tmp <- e2wt.ind %>% 
+  unite("Cond", Order:Condition) %>% 
+  pivot_wider(names_from = Cond, values_from = M)
+
+rrr <- cor(tmp[,2:5])
+tmp2 <- lower.tri(cor(tmp[,2:5]), diag = FALSE)
+rrr[tmp2]
+
+dx2 <- ANOVA_design(
+  design = "2w*2w",
+  labelnames = c("Order", "first", "second", 
+                 "Label", "self", "stranger"),
+  n = 27,   # not used for power
+  mu = e2g$mu,
+  sd = e2g$sd,
+  r = rrr[tmp2])
+```
+
+```{r}
+pw2 <- plot_power(dx2,
+                  max_n = 50,
+                  desired_power = 90,
+                  plot = TRUE,
+                  verbose = TRUE)
+```
+
+The simulation results indicated that a minimum of 20 participants would be sufficient to detect the expected effect. To account for potential differences between our nonspatial WM task and Yin et al’s original task, we recruited 50% more participants, resulting in a total sample size of 30.
+
+
+<br><br>
+
+---
+
+<br><br>
+
+
+
+# Stimuli & Tasks
+
+Subjects completed an <u>associative learning task</u> followed by a <u>working memory task</u>. 
+
+(A) The eight abstract shapes used in the tasks. These shapes were evenly sampled from the Validated Circular Shape (VCS) space ([Li et al., 2020](https://psycnet.apa.org/record/2019-58626-001)), designed to approximate the subjective similarity structure of the octagonal layout employed by Yin et al. (2019). 
+(B) The figure shows two successive example trials in the <u>associative learning task</u>. Each trial presented a red or blue shape with a superimposed social label—“당신” (the Korean word for “you”) or “타인” (the Korean word for “stranger”). Subjects were asked to judge whether the shape color matched the color associated with the referent of the label (self or other) prior to the experiment. The shape’s form was irrelevant to the task and was included solely to familiarize subjects with the shapes used in the later working memory task. Subjects responded using their right hand by pressing a button corresponding to either “match” or “nonmatch.” We refer to this as the **label-color matching judgment**.
+
+(C) Each trial of the <u>working memory task</u> presented a red shape, a blue shape, and a checkerboard pattern in sequence. In half of the trials, the red shape appeared first, and the blue shape appeared first in the other half. Subjects were required to briefly retain the samples' colors and shapes in working memory. After a 1-second delay, a gray probe shape appeared on the screen, and subjects were asked to make a speeded and accurate judgment as to whether the probe matched either of the two previously presented samples. In 25% of the trials, the probe matched the first sample; in another 25%, it matched the second sample; and in the remaining 50%, it was a novel shape randomly drawn from the other six items in the shape set. Subjects responded using their left hand by pressing a button labeled “old” or “new.” We refer to this as the **shape-matching response**. On trials where the probe matched one of the two samples, a social label was superimposed on the probe immediately after the shape-matching response. Subjects were then asked to judge whether the color associated with the probed sample matched the color previously associated with the referent of the label (self or other). They responded using their right hand by pressing a button labeled “match” or “nonmatch.” We refer to this as another **label-color matching response**.
+
+```{r, fig.height=4}
+ggdraw() + draw_image("fig/E1task.png")
+```
+
+
+<br><br>
+
+---
+
+<br><br>
+
+
+# Outlier Detection
+
+We examined whether any of our subjects (*N* = 30) exhibited extreme performance that would warrant exclusion as outliers. Subjects made responses for label-color matching in the associative learning task, and for both shape-matching and label-color matching in the working memory task. For all three response types, we calculated each subject’s accuracy and mean response time (RT). Outlier subjects were identified using the boxplot method: a subject was classified as an outlier if their score on any of the six indices (three response types × accuracy and mean RT) exceeded Q3 + 3 × IQR or fell below Q1 – 3 × IQR. 
+
+Additionally, mean RTs were computed based only on correct responses, excluding values that deviated more than 2.5 standard deviations from the subject-specific mean.
+
+In the raincloud plots below, each gray dot represents an individual subject’s performance across all trials. The red dashed line indicates the outlier cutoff at Q1 – 3 × IQR or Q3 + 3 × IQR, and the black dotted line marks Q1 – 1.5 × IQR or Q3 + 1.5 × IQR.
+
+## Learning Task: Label-Matching
+
+```{r outlierLrn, collapse=TRUE, fig.height=2}
+# Data loading
+s <- read.csv("data/datSPE8VCS1LRN.csv", header = T) %>%
+  mutate(SN = factor(SN),
+         Matching = factor(Matching, 
+                           labels = c("Match", "Nonmatch"),
+                           levels = c("Match", "Nonmatch")),
+         Label = factor(Label,
+                        labels = c("Self", "Stranger"),
+                        levels = c("Self", "Stranger")))
+str(s)
+headTail(s)
+
+# Accuracy summary
+s.gc <- s %>% 
+  group_by(SN) %>% 
+  summarise(M = mean(Correct)) %>% 
+  ungroup()
+
+s.gc %>% identify_outliers(M)
+
+thresholds <- s.gc %>% 
+  summarise(Outlier = quantile(M, prob = .25) - 1.5 * IQR(M),
+            Extreme = quantile(M, prob = .25) - 3 * IQR(M)) 
+Fo1 <- s.gc %>% 
+  single_raincloud_plot(.$M, 0.5, 1, 0.1, "Label-Color Matching Accuracy") + 
+  geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
+  geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
+
+# RT (subject-wise trimming)
+range(s$RT[s$Correct==1])
+
+st <- s %>% 
+  filter(Correct == 1) %>% 
+  group_by(SN) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$RT)-tOff*sd(.$RT)),
+         ubound = map(data, ~mean(.$RT)+tOff*sd(.$RT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (RT < lbound)|(RT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup() %>%
+  select(SN, Matching, Label,  RT)
+
+range(st$RT)
+
+# RT summary
+s.gt <- st %>% 
+  group_by(SN) %>% 
+  summarise(M = mean(RT)) %>% 
+  ungroup()
+
+s.gt %>% identify_outliers(M)
+
+# plot
+thresholds <- s.gt %>% 
+  summarise(Outlier = quantile(M, prob = .75) + 1.5 * IQR(M),
+            Extreme = quantile(M, prob = .75) + 3 * IQR(M)) 
+Fo2 <- s.gt %>% 
+  single_raincloud_plot(.$M, 200, 1400, 200, "Label-Color Matching RT (ms)") + 
+  geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
+  geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
+
+(Fo1 | Fo2) 
+```
+
+One subject (#1) showed outlier-level low accuracy. No subjects were excluded based on mean RT.
+
+
+## WM Task: Shape-Matching
+
+Responses are correct if participants pressed the 'Same' key when the probe matched either memory shape, or the 'Different' key otherwise.
+
+```{r outlierTestDMS, collapse=TRUE, fig.height=2}
+# Data loading
+d <- read.csv("data/datSPE8VCS1TST.csv", header = T) %>%
+  mutate(SN = factor(SN),
+         Identity = factor(Identity,
+                         labels = c("Self", "Stranger"),
+                         levels = c("Self", "Stranger")),
+         Order = factor(Order),
+         Change = factor(Change),
+         Matching = factor(Matching),
+         Label = factor(Label,
+                        labels = c("Self", "Stranger"),
+                        levels = c("Self", "Stranger")))
+str(d)
+headTail(d)
+
+# Shape-matching judgments only
+d.dms <- d %>% 
+  filter(Screen == "probe") %>% 
+  droplevels() %>%
+  dplyr::select(!c(Screen, Identity, Order, Matching))
+
+# Accuracy summary
+dgc <- d.dms %>% 
+  group_by(SN) %>% 
+  summarise(M = mean(Correct)) %>% 
+  ungroup() 
+
+dgc %>% identify_outliers(M)
+
+thresholds <- dgc %>% 
+  summarise(Outlier = quantile(M, prob = .25) - 1.5 * IQR(M),
+            Extreme = quantile(M, prob = .25) - 3 * IQR(M)) 
+Fo3 <- dgc %>% 
+  single_raincloud_plot(.$M, 0.5, 1, 0.1, "Shape-Matching Accuracy") + 
+  geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
+  geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
+
+# RT (subject-wise trimming)
+range(d.dms$RT[d.dms$Correct==1])
+
+dt <- d.dms %>% 
+  filter(Correct == 1) %>% 
+  group_by(SN) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$RT)-tOff*sd(.$RT)),
+         ubound = map(data, ~mean(.$RT)+tOff*sd(.$RT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (RT < lbound)|(RT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup %>%
+  select(SN, Change, RT) 
+
+range(dt$RT)
+
+# RT summary
+dgt <- dt %>% 
+  group_by(SN) %>% 
+  summarise(M = mean(RT)) %>% 
+  ungroup()
+
+dgt %>% identify_outliers(M)
+
+thresholds <- dgt %>% 
+  summarise(Outlier = quantile(M, prob = .75) + 1.5 * IQR(M),
+            Extreme = quantile(M, prob = .75) + 3 * IQR(M)) 
+Fo4 <- dgt %>% 
+  single_raincloud_plot(.$M, 200, 1400, 200, "Shape-Matching RT (ms)") + 
+  geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
+  geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
+
+(Fo3 | Fo4) 
+```
+
+No subjects were identified as outliers based both on accuracy and on mean RTs.
+
+
+## WM Task: Label-Matching
+
+```{r outlierTestLabel, collapse=TRUE, fig.height=2}
+# Label-color matching judgments only
+d.spe <- d %>% 
+  filter(Screen == "label") %>% # label은 모두 Same
+  droplevels() %>% 
+  select(!c(Screen, Identity, Order, Change))
+
+# Accuracy summary
+dgs <- d.spe %>% 
+  group_by(SN) %>% 
+  summarise(M = mean(Correct)) %>% 
+  ungroup()
+
+dgs %>% identify_outliers(M)
+
+thresholds <- dgs %>% 
+  summarise(Outlier = quantile(M, prob = .25) - 1.5 * IQR(M),
+            Extreme = quantile(M, prob = .25) - 3 * IQR(M)) 
+Fo5 <- dgs %>% 
+  single_raincloud_plot(.$M, 0.5, 1, 0.1, "WM Label-Matching Accuracy") + 
+  geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
+  geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
+
+# RT (subject-wise trimming)
+range(d.spe$RT[d.spe$Correct==1])
+
+d.spe.rt <- d.spe %>% 
+  filter(Correct == 1) %>% 
+  group_by(SN) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$RT)-tOff*sd(.$RT)),
+         ubound = map(data, ~mean(.$RT)+tOff*sd(.$RT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (RT < lbound)|(RT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup %>%
+  select(SN, Matching, Label,  RT)
+
+range(d.spe.rt$RT)
+
+# RT summary
+dptg <- d.spe.rt %>%
+  group_by(SN) %>% 
+  summarise(M = mean(RT)) %>% 
+  ungroup() 
+
+dptg %>% identify_outliers(M)
+
+thresholds <- dptg %>% 
+  summarise(OutlierL = quantile(M, prob = .25) - 1.5 * IQR(M),
+            OutlierU = quantile(M, prob = .75) + 1.5 * IQR(M),
+            Extreme = quantile(M, prob = .75) + 3 * IQR(M)) 
+Fo6 <- dptg %>% 
+  single_raincloud_plot(.$M, 200, 1400, 200, "WM Label-Matching RT (ms)") + 
+  geom_hline(yintercept=thresholds$OutlierL, linetype="dotted") +
+  geom_hline(yintercept=thresholds$OutlierU, linetype="dotted") + 
+  geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
+
+(Fo5 | Fo6)
+```
+
+One subject (#30) was classified as an outlier due to slow mean RT.
+
+```{r exclusion, collapse=TRUE, eval = TRUE}
+excluded <- c(1, 30)
+
+s <- rm_subject(s, excluded)
+length(unique(s$SN))
+
+d <- rm_subject(d, excluded)
+length(unique(d$SN))
+```
+
+In summary, one subject with low label-color matching accuracy in the associative learning task and another with markedly slow label-color matching RT in the working memory task were classified as outliers and excluded from further analyses.
+
+
+<br><br>
+
+---
+
+<br><br>
+
+
+
+# Associative Learning Task
+
+## Label-Matching Accuracy
+
+아래 왼편 플롯의 Self vs. Stranger는 Label을 가리킨다. Nonmatch 조건의 시행에서는 Label와 Color가 지칭하는 사람이 다르므로 Label을 기준으로 시행을 구분하였다. [Wade & Vickery (2017)](https://link.springer.com/article/10.3758/s13414-017-1307-8)는 label의 처리속도를 통제하기 위해 각 label의 match와 nonmatch 응답을 비교하여 congruency benefit을 계산하였다. 오른쪽 플롯이 바로 그 값이다. 
+
+우리는 오른쪽 플롯에 제시된 Self 조건과 Stranger 조건의 차이를 계산하여 자기편향(self-bias)으로 정의할 것이다. 
+
+```{r LrnAcc, collapse=TRUE}
+length(unique(s$SN))
+table(s$Label, s$SN)
+table(s$Matching, s$SN)
+table(s$Response, s$SN)
+table(s$Correct, s$SN)
+
+s.acc <- s %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(Accuracy = mean(Correct)) %>% 
+  ungroup()
+
+plotMatchLabel(s.acc, "Accuracy", 0.5, 1, .1, FALSE, -.2, .2, .1, .1)
+
+# Descriptive
+s.acc %>% group_by(Matching, Label) %>% 
+  get_summary_stats(Accuracy, show = c("mean", "sd")) %>% 
+  kable(digits = 2, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.sAcc <- anovaBF(Accuracy ~ Matching*Label + SN, data = as.data.frame(s.acc), 
+                     whichRandom = "SN", iterations = nIter, progress = FALSE) )
+# plot(bf.sAcc)
+
+# ANOVA
+cbind(
+  anova_test(
+    data = s.acc, dv = Accuracy, wid = SN,
+    within = c(Matching, Label),
+    effect.size = "pes") %>% 
+    get_anova_table(),
+  tibble(BF10 = c( exp((bf.sAcc[3]/bf.sAcc[2])@bayesFactor$bf), # Matching
+                   exp((bf.sAcc[3]/bf.sAcc[1])@bayesFactor$bf), # Label
+                   exp((bf.sAcc[4]/bf.sAcc[3])@bayesFactor$bf) ), # Matching x Label
+         BF01 = c( exp((bf.sAcc[2]/bf.sAcc[3])@bayesFactor$bf),
+                   exp((bf.sAcc[1]/bf.sAcc[3])@bayesFactor$bf),
+                   exp((bf.sAcc[3]/bf.sAcc[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,5,0,3,3,3), format = "simple", caption = "ANOVA")
+
+# Post-hoc
+dgT <- 3
+dgP <- 5
+dgM <- 3
+dgC <- 3
+dgD <- 3
+cbind(s.acc %>% 
+        group_by(Label) %>% 
+        t_test(Accuracy ~ Matching, ref.group = "Match", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'),
+      s.acc %>% 
+        group_by(Label) %>% 
+        cohens_d(Accuracy ~ Matching, paired = TRUE, ref.group = "Match") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+---
+
+## Label-Matching RT
+
+Accuracy에서 설명한 바와 같다. 우리는 오른쪽 플롯에서 Self 조건과 Stranger 조건의 차이를 계산하여 Self-bias로 정의할 것이다. 
+
+```{r LrnRT, collapse=TRUE}
+range(s$RT[s$Correct==1])
+
+st <- s %>% 
+  filter(Correct == 1) %>% 
+  group_by(SN) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$RT)-tOff*sd(.$RT)),
+         ubound = map(data, ~mean(.$RT)+tOff*sd(.$RT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (RT < lbound)|(RT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup() %>%
+  select(SN, Matching, Label,  RT)
+
+range(st$RT)
+
+# check numbers of trials per condition
+tmp <- st %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(n = n()) %>% 
+  ungroup() 
+range(tmp$n) # check min & max number of trials.
+tmp %>% 
+  unite("Cond", Matching:Label) %>% 
+  pivot_wider(id_cols = SN, names_from = Cond, values_from = n) %>% 
+  print(n = Inf) # relatively high accuracy. seems enough number of trials.
+
+( pTrim1 <- 100*(sum(s$Correct) - nrow(st))/sum(s$Correct) ) # proportion of the trimmed
+
+# RT summary
+s.rt <- st %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(RT = mean(RT)) %>% 
+  ungroup()
+
+plotMatchLabel(s.rt, "Response Time (ms)", 500, 1500, 200, TRUE, -100, 400, 100, 1)
+
+# Descriptive
+s.rt %>% group_by(Matching, Label) %>% 
+  get_summary_stats(RT, show = c("mean", "sd")) %>% 
+  kable(digits = 0, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.sRT <- anovaBF(RT ~ Matching*Label + SN, data = as.data.frame(s.rt), 
+                    whichRandom = "SN", iterations = nIter, progress = FALSE) )
+# plot(bf.sRT)
+
+# ANOVA
+cbind(
+  anova_test(
+    data = s.rt, dv = RT, wid = SN,
+    within = c(Matching, Label),
+    effect.size = "pes") %>% 
+    get_anova_table() ,
+  tibble(BF10 = c( exp((bf.sRT[3]/bf.sRT[2])@bayesFactor$bf),
+                   exp((bf.sRT[3]/bf.sRT[1])@bayesFactor$bf),
+                   exp((bf.sRT[4]/bf.sRT[3])@bayesFactor$bf) ),
+         BF01 = c( exp((bf.sRT[2]/bf.sRT[3])@bayesFactor$bf),
+                   exp((bf.sRT[1]/bf.sRT[3])@bayesFactor$bf),
+                   exp((bf.sRT[3]/bf.sRT[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,9,0,3,3,3), format = "simple", caption = "ANOVA")
+
+# Post-hoc
+dgT <- 3
+dgP <- 9
+dgM <- 0
+dgC <- 0
+dgD <- 3
+cbind(s.rt %>% 
+        group_by(Label) %>% 
+        t_test(RT ~ Matching, ref.group = "Nonmatch", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
+      s.rt %>% 
+        group_by(Label) %>% 
+        cohens_d(RT ~ Matching, paired = TRUE, ref.group = "Nonmatch") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+`r round(pTrim1, digits = 2)`% of RTs were removed as extreme values.
+
+---
+
+## Label-Matching Self-Bias
+
+앞에서 설명한 바와 같이 Accuracy와 RT의 congurency benefit (Wade & Vickery, 2017)에서 자기편향을 계산하였다.
+
+```{r lrnBias, collapse=TRUE}
+tmp <- cbind(
+  s.acc %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = Accuracy) %>%
+    mutate(Self = Match_Self - Nonmatch_Self,
+           Stranger = Match_Stranger - Nonmatch_Stranger) %>%
+    select(SN, Self, Stranger) %>%
+    mutate(bias = Self - Stranger) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)),
+  s.rt %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
+    mutate(Self = Nonmatch_Self - Match_Self,
+           Stranger = Nonmatch_Stranger - Match_Stranger) %>%
+    select(SN, Self, Stranger) %>%
+    mutate(bias = Self - Stranger) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)))
+colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
+tmp %>% 
+  kable(digits = c(2,2,0,0), 
+        format = "simple", caption = "Self-bias @ label-color matching judgment")
+```
+
+
+<br><br>
+
+---
+
+<br><br>
+
+
+
+# Working Memory Task
+
+## DMS Accuracy & RT
+
+Probe가 두 sample 중 하나와 같은 시행(Same)과 두 sample 중 어느 것과도 같지 않은 시행(Different)으로 나누어 delayed Match-to-Sample judgment를 분석하였다. 
+
+```{r DMS, collapse=TRUE}
+dc <- d %>% filter(Screen == "probe") %>%
+  droplevels() %>%
+  select(!c(Screen, Matching, Label, Identity, Response, Order)) 
+table(dc$Change, dc$Correct)
+
+rbind(
+  dc %>% 
+    group_by(SN) %>% 
+    summarise(M = mean(Correct)) %>% 
+    ungroup() %>% 
+    summarise(Mean = mean(M), SD = sd(M)) %>% 
+    mutate(Change = factor("Overall")) %>% 
+    select(Change, Mean, SD),
+  dc %>% 
+    group_by(SN, Change) %>% 
+    summarise(M = mean(Correct)) %>% 
+    ungroup() %>% 
+    group_by(Change) %>% 
+    summarise(Mean = mean(M), SD = sd(M))) %>% 
+  pivot_longer(cols = -Change, names_to = "Statistic", values_to = "Value") %>%
+  pivot_wider(names_from = Change, values_from = Value) %>% 
+  select(Statistic, Overall, Same, Different) %>% 
+  kable(digits = c(0,3,3,3), 
+        format = "simple", caption = "DMS Judgment Summary")
+```
+
+
+---
+
+## Shape-Matching Accuracy
+
+The key dependent measure was RT on correct **shape-probe-match trials**, referring to trials where the probe matched one of the two sample shapes in working memory ([Yin et al.](https://doi.org/10.1177/0956797618818483)).
+
+오른쪽 플롯에서 Y축은 self-bias를 의미한다. First 조건과 Second 조건의 평균을 WM 과제의 self-bias로 정의할 것이다. 
+
+```{r shapeAcc, collapse=TRUE}
+d.same <- d %>% 
+  filter(Change == "Same", Screen == "probe") %>%
+  droplevels() %>%
+  select(!c(Screen, Change, Matching, Label))
+str(d.same)
+table(d.same$SN)
+table(d.same$Identity, d.same$SN)
+table(d.same$Order, d.same$SN)
+table(d.same$Response, d.same$SN)
+table(d.same$Correct, d.same$SN)
+
+# Shape-probe-match accuracy
+dsa <- d.same %>% 
+  group_by(SN, Order, Identity) %>% 
+  summarise(Accuracy = mean(Correct)) %>% 
+  ungroup()
+
+plotOrderIdentity(dsa, "Accuracy", 0.5, 1, .1, FALSE, -.2, .3, .1, .1)
+
+# Descriptive
+dsa %>% group_by(Order, Identity) %>% 
+  get_summary_stats(Accuracy, show = c("mean", "sd")) %>% 
+  kable(digits = 2, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.dAcc <- anovaBF(Accuracy ~ Order*Identity + SN, data = as.data.frame(dsa), 
+                     whichRandom = "SN", iterations = nIter, progress = FALSE) )
+
+# ANOVA
+cbind(
+  anova_test(
+    data = dsa, dv = Accuracy, wid = SN,
+    within = c(Order, Identity),
+    effect.size = "pes") %>% 
+    get_anova_table() ,
+  tibble(BF10 = c( exp((bf.dAcc[3]/bf.dAcc[2])@bayesFactor$bf),
+                   exp((bf.dAcc[3]/bf.dAcc[1])@bayesFactor$bf),
+                   exp((bf.dAcc[4]/bf.dAcc[3])@bayesFactor$bf) ),
+         BF01 = c( exp((bf.dAcc[2]/bf.dAcc[3])@bayesFactor$bf),
+                   exp((bf.dAcc[1]/bf.dAcc[3])@bayesFactor$bf),
+                   exp((bf.dAcc[3]/bf.dAcc[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,3,0,3,3,3), format = "simple", caption = "ANOVA")
+
+# Post-hoc
+dgT <- 3
+dgP <- 3
+dgM <- 3
+dgC <- 3
+dgD <- 3
+cbind(dsa %>% 
+        group_by(Order) %>% 
+        t_test(Accuracy ~ Identity, ref.group = "Self", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Order, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
+      dsa %>% 
+        group_by(Order) %>% 
+        cohens_d(Accuracy ~ Identity, paired = TRUE, ref.group = "Self") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+---
+
+## Shape-Matching RT
+
+```{r shapeRT, collapse=TRUE}
+range(d.same$RT[d.same$Correct==1])
+
+d.same.rt <- d.same %>%
+  filter(Correct == 1) %>%
+  group_by(SN) %>%
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$RT)-tOff*sd(.$RT)),
+         ubound = map(data, ~mean(.$RT)+tOff*sd(.$RT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (RT < lbound)|(RT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup %>%
+  select(SN, Identity, Order, RT)
+
+range(d.same.rt$RT)
+
+# check numbers of trials per condition
+tmp <- d.same.rt %>%
+  group_by(SN, Order, Identity) %>%
+  summarise(n = n()) %>%
+  ungroup()
+range(tmp$n) # check min & max number of trials
+tmp %>%
+  unite("Cond", Order:Identity) %>%
+  pivot_wider(id_cols = SN, names_from = Cond, values_from = n) %>%
+  print(n = Inf) # SN 25 had only 11 trials.
+
+( pTrim3 <- 100*(sum(d.same$Correct) - nrow(d.same.rt))/sum(d.same$Correct)) # proportion of trimmed RTs
+
+dst <- d.same.rt %>% 
+  group_by(SN, Order, Identity) %>% 
+  summarise(RT = mean(RT)) %>% 
+  ungroup()
+
+plotOrderIdentity(dst, "Response Time (ms)", 500, 1300, 200, TRUE, -150, 200, 50, 1)
+
+# Descriptive
+dst %>% group_by(Order, Identity) %>% 
+  get_summary_stats(RT, show = c("mean", "sd")) %>% 
+  kable(digits = 0, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.dRT <- anovaBF(RT ~ Order*Identity + SN, data = as.data.frame(dst), 
+                    whichRandom = "SN", iterations = nIter, progress = FALSE) )
+# plot(bf.dAcc)
+
+# ANOVA
+cbind(
+  anova_test(
+    data = dst, dv = RT, wid = SN,
+    within = c(Order, Identity),
+    effect.size = "pes") %>% 
+    get_anova_table() ,
+  tibble(BF10 = c( exp((bf.dRT[3]/bf.dRT[2])@bayesFactor$bf),
+                   exp((bf.dRT[3]/bf.dRT[1])@bayesFactor$bf),
+                   exp((bf.dRT[4]/bf.dRT[3])@bayesFactor$bf) ),
+         BF01 = c( exp((bf.dRT[2]/bf.dRT[3])@bayesFactor$bf),
+                   exp((bf.dRT[1]/bf.dRT[3])@bayesFactor$bf),
+                   exp((bf.dRT[3]/bf.dRT[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,9,0,3,3,3), format = "simple", caption = "ANOVA")
+
+# Post-hoc
+dgT <- 3
+dgP <- 11
+dgM <- 0
+dgC <- 0
+dgD <- 3
+cbind(dst %>% 
+        group_by(Order) %>% 
+        t_test(RT ~ Identity, ref.group = "Stranger", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Order, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
+      dst %>% 
+        group_by(Order) %>% 
+        cohens_d(RT ~ Identity, paired = TRUE, ref.group = "Stranger") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+`r round(pTrim3, digits = 2)`% of RTs were removed as extreme values.
+
+---
+
+## Shape-Matching Self-bias 
+
+First 조건과 Second 조건의 결과를 평균하여 자기편향으로 정의하였다. 
+
+```{r tstShapeBias, collapse=TRUE}
+tmp <- cbind(
+  dsa %>%
+    group_by(SN, Identity) %>%
+    summarise(value = mean(Accuracy)) %>%
+    ungroup() %>% 
+    pivot_wider(id_cols = SN, names_from = Identity, values_from = value) %>%
+    mutate(bias = Self - Stranger) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)),
+  dst %>%
+    group_by(SN, Identity) %>%
+    summarise(value = mean(RT)) %>%
+    ungroup() %>% 
+    pivot_wider(id_cols = SN, names_from = Identity, values_from = value) %>%
+    mutate(bias = Stranger - Self) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)))
+colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
+tmp %>% 
+  kable(digits = c(2,2,0,0), 
+        format = "simple", caption = "Self-bias @ WM shape-matching judgment")
+```
+
+
+<br><br>
+
+---
+
+<br><br>
+
+
+## Label-Matching Accuracy
+
+Associative learning task를 분석한 방법을 그대로 적용하였다. 
+
+```{r labelAcc, collapse=TRUE}
+d.spe <- d %>% 
+  filter(Screen == "label") %>% # label은 모두 Same
+  droplevels() %>% 
+  select(!c(Screen, Identity, Order, Change))
+str(d.spe)
+table(d.spe$Matching, d.spe$SN)
+table(d.spe$Label, d.spe$SN)
+table(d.spe$Response, d.spe$SN)
+table(d.spe$Correct, d.spe$SN)
+
+# Accuracy
+dgs <- d.spe %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(Accuracy = mean(Correct)) %>% 
+  ungroup()
+
+plotMatchLabel(dgs, "Accuracy", 0.5, 1, .1, FALSE, -0.3, 0.4, .1, .1)
+
+# Descriptive
+dgs %>% group_by(Matching, Label) %>% 
+  get_summary_stats(Accuracy, show = c("mean", "sd")) %>% 
+  kable(digits = 2, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.dSpeAcc <- anovaBF(Accuracy ~ Matching*Label + SN, data = as.data.frame(dgs), 
+                        whichRandom = "SN", iterations = nIter, progress = FALSE) )
+# plot(bf.dSpeAcc)
+
+# ANOVA
+cbind(
+  anova_test(
+    data = dgs, dv = Accuracy, wid = SN,
+    within = c(Matching, Label),
+    effect.size = "pes") %>% 
+    get_anova_table() ,
+  tibble(BF10 = c( exp((bf.dSpeAcc[3]/bf.dSpeAcc[2])@bayesFactor$bf),
+                   exp((bf.dSpeAcc[3]/bf.dSpeAcc[1])@bayesFactor$bf),
+                   exp((bf.dSpeAcc[4]/bf.dSpeAcc[3])@bayesFactor$bf) ),
+         BF01 = c( exp((bf.dSpeAcc[2]/bf.dSpeAcc[3])@bayesFactor$bf),
+                   exp((bf.dSpeAcc[1]/bf.dSpeAcc[3])@bayesFactor$bf),
+                   exp((bf.dSpeAcc[3]/bf.dSpeAcc[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,6,0,3,3,3), format = "simple", caption = "ANOVA")
+
+# Post-hoc
+dgT <- 3
+dgP <- 3
+dgM <- 3
+dgC <- 3
+dgD <- 3  
+cbind(dgs %>% 
+        group_by(Label) %>% 
+        t_test(Accuracy ~ Matching, ref.group = "Match", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
+      dgs %>% 
+        group_by(Label) %>% 
+        cohens_d(Accuracy ~ Matching, paired = TRUE, ref.group = "Match") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+
+---
+
+
+## Label-Matching RT
+
+```{r labelRT, collapse=TRUE}
+range(d.spe$RT[d.spe$Correct==1])
+
+d.spe.rt <- d.spe %>% 
+  filter(Correct == 1) %>% 
+  group_by(SN) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$RT)-tOff*sd(.$RT)),
+         ubound = map(data, ~mean(.$RT)+tOff*sd(.$RT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (RT < lbound)|(RT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup %>%
+  select(SN, Matching, Label,  RT)
+
+range(d.spe.rt$RT)
+
+# check numbers of trials per condition
+tmp <- d.spe.rt %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(n = n()) %>% 
+  ungroup() 
+range(tmp$n)
+tmp %>% 
+  unite("Cond", Matching:Label) %>% 
+  pivot_wider(id_cols = SN, names_from = Cond, values_from = n) %>% 
+  print(n = Inf)
+
+(pTrim4 <- 100*(sum(d.spe$Correct) - nrow(d.spe.rt))/sum(d.spe$Correct)) # proportion of trimmed RTs
+
+# RT summary
+dpt <- d.spe.rt %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(RT = mean(RT)) %>% 
+  ungroup()
+
+plotMatchLabel(dpt, "Response Time (ms)", 400, 1200, 200, TRUE, -200, 400, 100, 1)
+
+# Descriptive
+dpt %>% group_by(Matching, Label) %>% 
+  get_summary_stats(RT, show = c("mean", "sd")) %>% 
+  kable(digits = 0, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.dSpeRT <- anovaBF(RT ~ Matching*Label + SN, data = as.data.frame(dpt), 
+                       whichRandom = "SN", iterations = nIter, progress = FALSE) )
+# plot(bf.dSpeRT)
+
+# ANOVA
+cbind(
+  anova_test(
+    data = dpt, dv = RT, wid = SN,
+    within = c(Matching, Label),
+    effect.size = "pes") %>% 
+    get_anova_table() ,
+  tibble(BF10 = c( exp((bf.dSpeRT[3]/bf.dSpeRT[2])@bayesFactor$bf),
+                   exp((bf.dSpeRT[3]/bf.dSpeRT[1])@bayesFactor$bf),
+                   exp((bf.dSpeRT[4]/bf.dSpeRT[3])@bayesFactor$bf) ),
+         BF01 = c( exp((bf.dSpeRT[2]/bf.dSpeRT[3])@bayesFactor$bf),
+                   exp((bf.dSpeRT[1]/bf.dSpeRT[3])@bayesFactor$bf),
+                   exp((bf.dSpeRT[3]/bf.dSpeRT[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,4,0,3,3,3), format = "simple", caption = "ANOVA")
+
+# Post-hoc
+dgT <- 3
+dgP <- 5
+dgM <- 0
+dgC <- 0
+dgD <- 3
+cbind(dpt %>% 
+        group_by(Label) %>% 
+        t_test(RT ~ Matching, ref.group = "Nonmatch", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
+      dpt %>% 
+        group_by(Label) %>% 
+        cohens_d(RT ~ Matching, paired = TRUE, ref.group = "Nonmatch") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+`r round(pTrim4, digits = 2)`% of RTs were removed as extreme values.
+
+---
+
+## Label-Matching Self-bias
+
+```{r tstLabelBias, collapse=TRUE}
+tmp <- cbind(
+  dgs %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = Accuracy) %>%
+    mutate(Self = Match_Self - Nonmatch_Self,
+           Stranger = Match_Stranger - Nonmatch_Stranger) %>%
+    select(SN, Self, Stranger) %>%
+    mutate(bias = Self - Stranger) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)),
+  dpt %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
+    mutate(Self = Nonmatch_Self - Match_Self,
+           Stranger = Nonmatch_Stranger - Match_Stranger) %>%
+    select(SN, Self, Stranger) %>%
+    mutate(bias = Self - Stranger) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)))
+colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
+tmp %>% 
+  kable(digits = c(2,2,0,0), 
+        format = "simple", caption = "Self-bias @ WM label-color matching judgment")
+```
+
+<br><br>
+
+---
+
+<br><br>
+
+
+# Correlation
+
+Associative learning task의 label-color matching RT, Working memory task의 shape-matching RT와 label-color matching RT에서 계산한 self-bias의 상관을 계산하였다. 
+
+```{r, collapse=TRUE, eval=TRUE, fig.height=6}
+# Associative Learning Task: Label-Color Matching
+asc.effect <- s.rt %>%
+  unite("temp", c("Matching", "Label")) %>%
+  pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
+  mutate(Self = Nonmatch_Self - Match_Self,
+         Stranger = Nonmatch_Stranger - Match_Stranger) %>%
+  select(SN, Self, Stranger) %>% 
+  mutate(lrnLabel = Self - Stranger) %>% 
+  select(SN, lrnLabel)
+
+# Working Memory Task: Shape-Matching 
+shape.effect <- dst %>% 
+  group_by(SN, Identity) %>% 
+  summarise(value = mean(RT)) %>% 
+  ungroup() %>% 
+  pivot_wider(id_cols = SN, names_from = Identity, values_from = value) %>% 
+  mutate(wmShape = Stranger - Self) %>% 
+  select(SN, wmShape)
+
+# Working Memory Task: Label-Color Matching
+tst.effect <- dpt %>%
+  unite("temp", c("Matching", "Label")) %>%
+  pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
+  mutate(Self = Nonmatch_Self - Match_Self,
+         Stranger = Nonmatch_Stranger - Match_Stranger) %>%
+  select(SN, Self, Stranger) %>% 
+  mutate(wmLabel = Self - Stranger) %>% 
+  select(SN, wmLabel)
+
+self.bias <- full_join(
+  full_join(asc.effect, shape.effect, by = 'SN'),
+  tst.effect, by = 'SN')
+
+self.bias %>% 
+  select(-SN) %>% 
+  pairs.panels(method = "pearson", lm = TRUE, stars = TRUE)
+```
+
+**lrnLabel**: Label-matching self-bias in the associative learning task <br>
+**wmShape**: Shape-matching self-bias in the working memory task <br>
+**wmLabel**: Label-matching self-bias in the working memory task
+
+```{r, collapse=TRUE, eval=TRUE}
+cor.mat <- self.bias  %>% select(-SN) %>% cor_mat(method = "pearson")
+ctb <- cor.mat %>% cor_gather() %>% slice(c(4,7,8)) %>% rename(r = cor)
+ctb <- ctb %>%
+  mutate(p_bonferroni = p * 3, # Bonferroni correction
+         p_bonferroni = ifelse(p_bonferroni > 1, 1, p_bonferroni))  # max = 1
+
+# BF
+( bf.corr1 <- correlationBF(y = self.bias$lrnLabel, x = self.bias$wmShape) )
+( bf.corr2 <- correlationBF(y = self.bias$lrnLabel, x = self.bias$wmLabel) )
+( bf.corr3 <- correlationBF(y = self.bias$wmShape, x = self.bias$wmLabel) )
+
+ttb <- tibble(
+  var1 = c('lrnLabel', 'lrnLabel', 'wmShape'),
+  var2 = c('wmShape', 'wmLabel', 'wmLabel'),
+  BF10 = c( exp(bf.corr1@bayesFactor$bf),
+            exp(bf.corr2@bayesFactor$bf),
+            exp(bf.corr3@bayesFactor$bf) ),
+  BF01 = c( exp((1/bf.corr1)@bayesFactor$bf),
+            exp((1/bf.corr2)@bayesFactor$bf),
+            exp((1/bf.corr3)@bayesFactor$bf) )) 
+
+full_join(ctb, ttb) %>% 
+  kable(digits = 3, format = "simple", 
+        caption = "Pearson Correlation Coefficient & Bayes Factors")
+```
+
+
+
+---
+
+
+# Session Info
+
+```{r session_info, collapse=TRUE}
+sessionInfo()
+```

@@ -1,0 +1,33 @@
+---
+title: "Self-Prioritization in Nonspatial Working Memory"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: cosmo 
+    highlight: pygments
+subtitle: Data & R script (in preparation)
+mainfont: Noto Sans CJK KR
+---
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# install.packages("devtools")
+# pacman::p_load_gh("mitchelloharawild/icons")
+library(icons)
+```
+
+<br><br>
+
+## Authors
+
+* Woojeong Lee (Department of Psychology, Yonsei University, woojung2023@yonsei.ac.kr) 
+* Do-Joon Yi (Department of Psychology, Yonsei University, dojoon.yi@yonsei.ac.kr)
+
+<br>
+
+## Abstract
+
+The self-prioritization effect refers to the tendency to process self-associated items more quickly and accurately, which is thought to reflect the saliency of self-referential information at multiple stages of visual processing. Given the relationship between perception and working memory (WM), we expect that self-prioritization would also manifest in WM. However, previous research has yielded inconsistent findings. Some studies reported improved WM speed and accuracy for self-associated items, while others failed to find such an effect. The current study examined the self-prioritization effects on shape-based WM across two experiments, conducted in April and September–October 2024, respectively. Participants associated themselves and others with specific colors and completed a delayed matched-to-sample task (Experiment 1) or a reproduction task (Experiment 2) for the shapes of objects presented in each color. Results revealed no difference in WM responses for shapes between the self and other conditions, but WM responses for colors were faster in the self condition than in the other condition. Therefore, the current study limits the scope of self-prioritization to self-associated features, rather than to entire objects that contain those features.
+
+
+***
+[[View on Github `r icon_style(fontawesome("github-alt", style = "brands"), scale = 4, fill = "#56B4E9")`](https://github.com/cogneuro/MemUpdatingPE)]{style="float:right"}

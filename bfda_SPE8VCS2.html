@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="Woojeong Lee &amp; Do-Joon Yi" />
+
+<meta name="date" content="2025-09-15" />
+
+<title>Sequential Bayes Factor Design Analysis</title>
+
+<script src="site_libs/header-attrs-2.29/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+
+
+<style type="text/css">
+  code {
+    white-space: pre;
+  }
+  .sourceCode {
+    overflow: visible;
+  }
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; } /* Alert */
+code span.an { color: #008000; } /* Annotation */
+code span.at { } /* Attribute */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #0000ff; } /* ControlFlow */
+code span.ch { color: #008080; } /* Char */
+code span.cn { } /* Constant */
+code span.co { color: #008000; } /* Comment */
+code span.cv { color: #008000; } /* CommentVar */
+code span.do { color: #008000; } /* Documentation */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.im { } /* Import */
+code span.in { color: #008000; } /* Information */
+code span.kw { color: #0000ff; } /* Keyword */
+code span.op { } /* Operator */
+code span.ot { color: #ff4000; } /* Other */
+code span.pp { color: #ff4000; } /* Preprocessor */
+code span.sc { color: #008080; } /* SpecialChar */
+code span.ss { color: #008080; } /* SpecialString */
+code span.st { color: #008080; } /* String */
+code span.va { } /* Variable */
+code span.vs { color: #008080; } /* VerbatimString */
+code span.wa { color: #008000; font-weight: bold; } /* Warning */
+
+.sourceCode .row {
+  width: 100%;
+}
+.sourceCode {
+  overflow-x: auto;
+}
+.code-folding-btn {
+  margin-right: -30px;
+}
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Self-Bias in WM</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="analyzeSPE8VCS1.html">Exp 1</a>
+</li>
+<li>
+  <a href="bfda_SPE8VCS2.html">Exp 2 (BFDA)</a>
+</li>
+<li>
+  <a href="analyzeSPE8VCS2.html">Exp 2 (results)</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Sequential Bayes Factor Design
+Analysis</h1>
+<h3 class="subtitle">Self-Priority Effects on Nonspatial Working
+Memory</h3>
+<h4 class="author">Woojeong Lee &amp; Do-Joon Yi</h4>
+<h4 class="date">2025-09-15</h4>
+
+</div>
+
+
+<style type="text/css">
+pre code, pre, code {
+  white-space: pre-wrap !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+blockquote {
+    padding: 10px 20px;
+    margin: 0 0 20px;
+    font-size: 14px;
+    border-left: 5px solid #eee;
+}
+</style>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(tidyverse, psych, knitr, rstatix, ggpubr)</span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load_gh</span>(<span class="st">&quot;nicebread/BFDA&quot;</span>, <span class="st">&#39;eddjberry/mixturer&#39;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="fu">options</span>(<span class="at">dplyr.summarise.inform=</span><span class="cn">FALSE</span>) <span class="co"># suppress warning in regards to regrouping </span></span></code></pre></div>
+<div id="yin-chen-2024" class="section level1">
+<h1>1. Yin &amp; Chen (2024)</h1>
+<p>We analyzed the data from Experiment 1–2, the low-load condition of
+Experiment 3, and the no-distraction condition of Experiment 4 from the
+<a href="http://osf.io/myca9">open dataset</a> provided by <a
+href="https://doi.org/10.1080/09658211.2024.2341709">Yin and Chen
+(2024)</a>. Excluding the Stranger condition, we computed model-free
+precision for the Self and Friend conditions. Subsequently,
+paired-sample t-tests were conducted to compare the Self and Friend
+conditions in each experiment, and effect sizes were computed using
+Cohen’s d.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="co"># As Yin and Chen measured memory for line orientations, memory errors should range [ –90°,  90°]. However, the code they shared transforms errors into a [–180°, 180°] range, likely due to the use of JV10_error.m by Paul Bays, which expects inputs within [–π, π]. To compensate for this, Yin and Chen converted degrees to radians using deg/90 × π instead of the conventional deg/180 × π. In other words, values that should have been scaled to [–π/2, π/2] were instead scaled to [–π, π], effectively doubling the error range before being passed into JV10_error.m. We followed the same approach in the present analysis.</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>deg2rad <span class="ot">&lt;-</span> <span class="cf">function</span>(deg){deg <span class="sc">*</span> pi <span class="sc">/</span> <span class="dv">90</span>} <span class="co"># originally 90 should be 180. see above.</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>wrap <span class="ot">&lt;-</span> <span class="cf">function</span>(data, <span class="at">bound =</span> pi) {</span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>  ((data <span class="sc">+</span> bound) <span class="sc">%%</span> (bound <span class="sc">*</span> <span class="dv">2</span>)) <span class="sc">-</span> bound</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>}</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>d1 <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&#39;YinChen2024Memory/Results/E1results.csv&#39;</span>, <span class="at">header =</span> T) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">error =</span> <span class="fu">ifelse</span>(Lshape<span class="sc">==</span>Label, </span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>                        probeAngle <span class="sc">-</span> angle1,</span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>                        probeAngle <span class="sc">-</span> angle2), </span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>         <span class="at">error =</span> <span class="fu">wrap</span>(<span class="fu">deg2rad</span>(error)),</span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>         <span class="at">Label =</span> <span class="fu">factor</span>(Label,</span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>                        <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>),</span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&#39;Self&#39;</span>, <span class="st">&#39;Friend&#39;</span>, <span class="st">&#39;Stranger&#39;</span>)),</span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>         <span class="at">id =</span> subject <span class="sc">+</span> <span class="dv">100</span>,</span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>         <span class="at">Expt =</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>  <span class="fu">select</span>(Expt, id, Label, error)</span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a><span class="co"># write.csv(d, file = &quot;convertedE1to4.csv&quot;, row.names = FALSE)</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a><span class="fu">headTail</span>(d1)</span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a><span class="do">##      Expt  id    Label error</span></span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a><span class="do">## 1       1 101   Friend -0.01</span></span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a><span class="do">## 2       1 101     Self -0.09</span></span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a><span class="do">## 3       1 101   Friend  0.33</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a><span class="do">## 4       1 101 Stranger  0.25</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a><span class="do">## ...   ... ...     &lt;NA&gt;   ...</span></span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a><span class="do">## 4533    1 127     Self -1.08</span></span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a><span class="do">## 4534    1 127   Friend  0.52</span></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a><span class="do">## 4535    1 127 Stranger  0.06</span></span>
+<span id="cb2-31"><a href="#cb2-31" tabindex="-1"></a><span class="do">## 4536    1 127     Self  0.16</span></span>
+<span id="cb2-32"><a href="#cb2-32" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" tabindex="-1"></a>d1 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(id, Label) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-34"><a href="#cb2-34" tabindex="-1"></a>  <span class="fu">group_modify</span>( <span class="sc">~</span> <span class="fu">bays_2009_error</span>(.<span class="sc">$</span>error)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-35"><a href="#cb2-35" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb2-36"><a href="#cb2-36" tabindex="-1"></a>  <span class="fu">group_by</span>(Label) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-37"><a href="#cb2-37" tabindex="-1"></a>  <span class="fu">get_summary_stats</span>(precision, <span class="at">type=</span><span class="st">&quot;mean&quot;</span>) <span class="co"># closely replicating Yin&#39;s</span></span>
+<span id="cb2-38"><a href="#cb2-38" tabindex="-1"></a><span class="do">## # A tibble: 3 × 4</span></span>
+<span id="cb2-39"><a href="#cb2-39" tabindex="-1"></a><span class="do">##   Label    variable      n  mean</span></span>
+<span id="cb2-40"><a href="#cb2-40" tabindex="-1"></a><span class="do">##   &lt;fct&gt;    &lt;fct&gt;     &lt;dbl&gt; &lt;dbl&gt;</span></span>
+<span id="cb2-41"><a href="#cb2-41" tabindex="-1"></a><span class="do">## 1 Self     precision    27  2.13</span></span>
+<span id="cb2-42"><a href="#cb2-42" tabindex="-1"></a><span class="do">## 2 Friend   precision    27  1.82</span></span>
+<span id="cb2-43"><a href="#cb2-43" tabindex="-1"></a><span class="do">## 3 Stranger precision    27  1.76</span></span>
+<span id="cb2-44"><a href="#cb2-44" tabindex="-1"></a></span>
+<span id="cb2-45"><a href="#cb2-45" tabindex="-1"></a>d1 <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(id, Label) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-46"><a href="#cb2-46" tabindex="-1"></a>  <span class="fu">group_modify</span>( <span class="sc">~</span> <span class="fu">bays_2009_error</span>(.<span class="sc">$</span>error)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-47"><a href="#cb2-47" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb2-48"><a href="#cb2-48" tabindex="-1"></a>  <span class="fu">pairwise_t_test</span>(precision <span class="sc">~</span> Label, <span class="at">paired =</span> <span class="cn">TRUE</span>)  <span class="co"># closely replicating Yin&#39;s</span></span>
+<span id="cb2-49"><a href="#cb2-49" tabindex="-1"></a><span class="do">## # A tibble: 3 × 10</span></span>
+<span id="cb2-50"><a href="#cb2-50" tabindex="-1"></a><span class="do">##   .y.   group1 group2    n1    n2 statistic    df     p p.adj p.adj.signif</span></span>
+<span id="cb2-51"><a href="#cb2-51" tabindex="-1"></a><span class="do">## * &lt;chr&gt; &lt;chr&gt;  &lt;chr&gt;  &lt;int&gt; &lt;int&gt;     &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;       </span></span>
+<span id="cb2-52"><a href="#cb2-52" tabindex="-1"></a><span class="do">## 1 prec… Self   Friend    27    27     3.01     26 0.006 0.012 *           </span></span>
+<span id="cb2-53"><a href="#cb2-53" tabindex="-1"></a><span class="do">## 2 prec… Self   Stran…    27    27     3.60     26 0.001 0.004 **          </span></span>
+<span id="cb2-54"><a href="#cb2-54" tabindex="-1"></a><span class="do">## 3 prec… Friend Stran…    27    27     0.545    26 0.591 0.591 ns</span></span>
+<span id="cb2-55"><a href="#cb2-55" tabindex="-1"></a></span>
+<span id="cb2-56"><a href="#cb2-56" tabindex="-1"></a>d2 <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&#39;YinChen2024Memory/Results/E2results.csv&#39;</span>, <span class="at">header =</span> T) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-57"><a href="#cb2-57" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">error =</span> <span class="fu">ifelse</span>(Lshape<span class="sc">==</span>Label, </span>
+<span id="cb2-58"><a href="#cb2-58" tabindex="-1"></a>                        probeAngle <span class="sc">-</span> angle1,</span>
+<span id="cb2-59"><a href="#cb2-59" tabindex="-1"></a>                        probeAngle <span class="sc">-</span> angle2), </span>
+<span id="cb2-60"><a href="#cb2-60" tabindex="-1"></a>         <span class="at">error =</span> <span class="fu">wrap</span>(<span class="fu">deg2rad</span>(error)),</span>
+<span id="cb2-61"><a href="#cb2-61" tabindex="-1"></a>         <span class="at">Label =</span> <span class="fu">factor</span>(Label,</span>
+<span id="cb2-62"><a href="#cb2-62" tabindex="-1"></a>                        <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>),</span>
+<span id="cb2-63"><a href="#cb2-63" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&#39;Self&#39;</span>, <span class="st">&#39;Friend&#39;</span>, <span class="st">&#39;Stranger&#39;</span>)),</span>
+<span id="cb2-64"><a href="#cb2-64" tabindex="-1"></a>         <span class="at">id =</span> subject <span class="sc">+</span> <span class="dv">200</span>,</span>
+<span id="cb2-65"><a href="#cb2-65" tabindex="-1"></a>         <span class="at">Expt =</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-66"><a href="#cb2-66" tabindex="-1"></a>  <span class="fu">select</span>(Expt, id, Label, error)</span>
+<span id="cb2-67"><a href="#cb2-67" tabindex="-1"></a></span>
+<span id="cb2-68"><a href="#cb2-68" tabindex="-1"></a>d3 <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&#39;YinChen2024Memory/Results/E3results.csv&#39;</span>, <span class="at">header =</span> T) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-69"><a href="#cb2-69" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">error =</span> <span class="fu">ifelse</span>(Loc1<span class="sc">==</span>Label, probeAngle <span class="sc">-</span> angle1,</span>
+<span id="cb2-70"><a href="#cb2-70" tabindex="-1"></a>                        <span class="fu">ifelse</span>(Loc2<span class="sc">==</span>Label, probeAngle <span class="sc">-</span> angle2,</span>
+<span id="cb2-71"><a href="#cb2-71" tabindex="-1"></a>                               probeAngle <span class="sc">-</span> angle3)), </span>
+<span id="cb2-72"><a href="#cb2-72" tabindex="-1"></a>         <span class="at">error =</span> <span class="fu">wrap</span>(<span class="fu">deg2rad</span>(error)),</span>
+<span id="cb2-73"><a href="#cb2-73" tabindex="-1"></a>         <span class="at">Label =</span> <span class="fu">factor</span>(Label,</span>
+<span id="cb2-74"><a href="#cb2-74" tabindex="-1"></a>                        <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>),</span>
+<span id="cb2-75"><a href="#cb2-75" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&#39;Self&#39;</span>, <span class="st">&#39;Friend&#39;</span>, <span class="st">&#39;Stranger&#39;</span>)),</span>
+<span id="cb2-76"><a href="#cb2-76" tabindex="-1"></a>         <span class="at">absError =</span> <span class="fu">abs</span>(error),</span>
+<span id="cb2-77"><a href="#cb2-77" tabindex="-1"></a>         <span class="at">id =</span> subject <span class="sc">+</span> <span class="dv">300</span>,</span>
+<span id="cb2-78"><a href="#cb2-78" tabindex="-1"></a>         <span class="at">Expt =</span> <span class="dv">3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-79"><a href="#cb2-79" tabindex="-1"></a>  <span class="fu">filter</span>(ISI <span class="sc">==</span> <span class="fl">1.6</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-80"><a href="#cb2-80" tabindex="-1"></a>  <span class="fu">select</span>(Expt, id, Label, error)</span>
+<span id="cb2-81"><a href="#cb2-81" tabindex="-1"></a></span>
+<span id="cb2-82"><a href="#cb2-82" tabindex="-1"></a>d4 <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">&#39;YinChen2024Memory/Results/E4results.csv&#39;</span>, <span class="at">header =</span> T) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-83"><a href="#cb2-83" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">error =</span> <span class="fu">ifelse</span>(loc1<span class="sc">==</span>Label, </span>
+<span id="cb2-84"><a href="#cb2-84" tabindex="-1"></a>                        probeAngle <span class="sc">-</span> angle1,</span>
+<span id="cb2-85"><a href="#cb2-85" tabindex="-1"></a>                        probeAngle <span class="sc">-</span> angle2), </span>
+<span id="cb2-86"><a href="#cb2-86" tabindex="-1"></a>         <span class="at">error =</span> <span class="fu">wrap</span>(<span class="fu">deg2rad</span>(error)),</span>
+<span id="cb2-87"><a href="#cb2-87" tabindex="-1"></a>         <span class="at">Label =</span> <span class="fu">factor</span>(Label,</span>
+<span id="cb2-88"><a href="#cb2-88" tabindex="-1"></a>                        <span class="at">levels =</span> <span class="fu">c</span>(<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>),</span>
+<span id="cb2-89"><a href="#cb2-89" tabindex="-1"></a>                        <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">&#39;Self&#39;</span>, <span class="st">&#39;Friend&#39;</span>, <span class="st">&#39;Stranger&#39;</span>)),</span>
+<span id="cb2-90"><a href="#cb2-90" tabindex="-1"></a>         <span class="at">absError =</span> <span class="fu">abs</span>(error),</span>
+<span id="cb2-91"><a href="#cb2-91" tabindex="-1"></a>         <span class="at">id =</span> subject <span class="sc">+</span> <span class="dv">400</span>,</span>
+<span id="cb2-92"><a href="#cb2-92" tabindex="-1"></a>         <span class="at">Expt =</span> <span class="dv">4</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-93"><a href="#cb2-93" tabindex="-1"></a>  <span class="fu">filter</span>(suffix <span class="sc">==</span> <span class="dv">5</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-94"><a href="#cb2-94" tabindex="-1"></a>  <span class="fu">select</span>(Expt, id, Label, error)</span>
+<span id="cb2-95"><a href="#cb2-95" tabindex="-1"></a></span>
+<span id="cb2-96"><a href="#cb2-96" tabindex="-1"></a>d <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(<span class="fu">list</span>(d1, d2, d3, d4)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-97"><a href="#cb2-97" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Expt =</span> <span class="fu">factor</span>(Expt)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-98"><a href="#cb2-98" tabindex="-1"></a>  <span class="fu">filter</span>(Label <span class="sc">!=</span> <span class="st">&#39;Stranger&#39;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-99"><a href="#cb2-99" tabindex="-1"></a>  <span class="fu">droplevels</span>()</span>
+<span id="cb2-100"><a href="#cb2-100" tabindex="-1"></a></span>
+<span id="cb2-101"><a href="#cb2-101" tabindex="-1"></a><span class="fu">headTail</span>(d)</span>
+<span id="cb2-102"><a href="#cb2-102" tabindex="-1"></a><span class="do">##       Expt  id  Label error</span></span>
+<span id="cb2-103"><a href="#cb2-103" tabindex="-1"></a><span class="do">## 1        1 101 Friend -0.01</span></span>
+<span id="cb2-104"><a href="#cb2-104" tabindex="-1"></a><span class="do">## 2        1 101   Self -0.09</span></span>
+<span id="cb2-105"><a href="#cb2-105" tabindex="-1"></a><span class="do">## 3        1 101 Friend  0.33</span></span>
+<span id="cb2-106"><a href="#cb2-106" tabindex="-1"></a><span class="do">## 4        1 101   Self  0.09</span></span>
+<span id="cb2-107"><a href="#cb2-107" tabindex="-1"></a><span class="do">## ...   &lt;NA&gt; ...   &lt;NA&gt;   ...</span></span>
+<span id="cb2-108"><a href="#cb2-108" tabindex="-1"></a><span class="do">## 11577    4 428   Self -0.03</span></span>
+<span id="cb2-109"><a href="#cb2-109" tabindex="-1"></a><span class="do">## 11578    4 428 Friend  0.15</span></span>
+<span id="cb2-110"><a href="#cb2-110" tabindex="-1"></a><span class="do">## 11579    4 428 Friend -0.41</span></span>
+<span id="cb2-111"><a href="#cb2-111" tabindex="-1"></a><span class="do">## 11580    4 428   Self -0.42</span></span>
+<span id="cb2-112"><a href="#cb2-112" tabindex="-1"></a></span>
+<span id="cb2-113"><a href="#cb2-113" tabindex="-1"></a><span class="fu">table</span>(d<span class="sc">$</span>Label, d<span class="sc">$</span>id)</span>
+<span id="cb2-114"><a href="#cb2-114" tabindex="-1"></a><span class="do">##         </span></span>
+<span id="cb2-115"><a href="#cb2-115" tabindex="-1"></a><span class="do">##          101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116</span></span>
+<span id="cb2-116"><a href="#cb2-116" tabindex="-1"></a><span class="do">##   Self    56  56  56  56  56  56  56  56  56  56  56  56  56  56  56  56</span></span>
+<span id="cb2-117"><a href="#cb2-117" tabindex="-1"></a><span class="do">##   Friend  56  56  56  56  56  56  56  56  56  56  56  56  56  56  56  56</span></span>
+<span id="cb2-118"><a href="#cb2-118" tabindex="-1"></a><span class="do">##         </span></span>
+<span id="cb2-119"><a href="#cb2-119" tabindex="-1"></a><span class="do">##          117 118 119 120 121 122 123 124 125 126 127 201 202 203 204 205</span></span>
+<span id="cb2-120"><a href="#cb2-120" tabindex="-1"></a><span class="do">##   Self    56  56  56  56  56  56  56  56  56  56  56  96  96  96  96  96</span></span>
+<span id="cb2-121"><a href="#cb2-121" tabindex="-1"></a><span class="do">##   Friend  56  56  56  56  56  56  56  56  56  56  56  96  96  96  96  96</span></span>
+<span id="cb2-122"><a href="#cb2-122" tabindex="-1"></a><span class="do">##         </span></span>
+<span id="cb2-123"><a href="#cb2-123" tabindex="-1"></a><span class="do">##          206 207 208 209 210 211 212 213 214 215 216 217 218 219 220 221</span></span>
+<span id="cb2-124"><a href="#cb2-124" tabindex="-1"></a><span class="do">##   Self    96  96  96  96  96  96  96  96  96  96  96  96  96  96  96  96</span></span>
+<span id="cb2-125"><a href="#cb2-125" tabindex="-1"></a><span class="do">##   Friend  96  96  96  96  96  96  96  96  96  96  96  96  96  96  96  96</span></span>
+<span id="cb2-126"><a href="#cb2-126" tabindex="-1"></a><span class="do">##         </span></span>
+<span id="cb2-127"><a href="#cb2-127" tabindex="-1"></a><span class="do">##          222 223 224 225 227 228 229 301 302 303 304 305 306 307 308 309</span></span>
+<span id="cb2-128"><a href="#cb2-128" tabindex="-1"></a><span class="do">##   Self    96  96  96  96  96  96  96  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-129"><a href="#cb2-129" tabindex="-1"></a><span class="do">##   Friend  96  96  96  96  96  96  96  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-130"><a href="#cb2-130" tabindex="-1"></a><span class="do">##         </span></span>
+<span id="cb2-131"><a href="#cb2-131" tabindex="-1"></a><span class="do">##          310 311 312 313 314 315 316 317 318 319 320 321 322 323 324 325</span></span>
+<span id="cb2-132"><a href="#cb2-132" tabindex="-1"></a><span class="do">##   Self    30  30  30  30  30  30  30  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-133"><a href="#cb2-133" tabindex="-1"></a><span class="do">##   Friend  30  30  30  30  30  30  30  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-134"><a href="#cb2-134" tabindex="-1"></a><span class="do">##         </span></span>
+<span id="cb2-135"><a href="#cb2-135" tabindex="-1"></a><span class="do">##          401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416</span></span>
+<span id="cb2-136"><a href="#cb2-136" tabindex="-1"></a><span class="do">##   Self    30  30  30  30  30  30  30  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-137"><a href="#cb2-137" tabindex="-1"></a><span class="do">##   Friend  30  30  30  30  30  30  30  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-138"><a href="#cb2-138" tabindex="-1"></a><span class="do">##         </span></span>
+<span id="cb2-139"><a href="#cb2-139" tabindex="-1"></a><span class="do">##          417 418 419 420 421 422 423 424 425 426 427 428</span></span>
+<span id="cb2-140"><a href="#cb2-140" tabindex="-1"></a><span class="do">##   Self    30  30  30  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-141"><a href="#cb2-141" tabindex="-1"></a><span class="do">##   Friend  30  30  30  30  30  30  30  30  30  30  30  30</span></span>
+<span id="cb2-142"><a href="#cb2-142" tabindex="-1"></a></span>
+<span id="cb2-143"><a href="#cb2-143" tabindex="-1"></a><span class="co"># hist(d$error, xlab = &quot;Memory error&quot;, main = &quot;Error distribution&quot;)</span></span>
+<span id="cb2-144"><a href="#cb2-144" tabindex="-1"></a><span class="fu">range</span>(d<span class="sc">$</span>error) <span class="co"># Memory errors were distributed within the range of [–π, π].</span></span>
+<span id="cb2-145"><a href="#cb2-145" tabindex="-1"></a><span class="do">## [1] -3.103032  3.113949</span></span>
+<span id="cb2-146"><a href="#cb2-146" tabindex="-1"></a></span>
+<span id="cb2-147"><a href="#cb2-147" tabindex="-1"></a>dd <span class="ot">&lt;-</span> d <span class="sc">%&gt;%</span> </span>
+<span id="cb2-148"><a href="#cb2-148" tabindex="-1"></a>  <span class="fu">group_by</span>(id, Label) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-149"><a href="#cb2-149" tabindex="-1"></a>  <span class="fu">group_modify</span>( <span class="sc">~</span> <span class="fu">bays_2009_error</span>(.<span class="sc">$</span>error)) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-150"><a href="#cb2-150" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span> </span>
+<span id="cb2-151"><a href="#cb2-151" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Expt =</span> <span class="fu">round</span>(id<span class="sc">/</span><span class="dv">100</span>),</span>
+<span id="cb2-152"><a href="#cb2-152" tabindex="-1"></a>         <span class="at">Precision =</span> precision) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-153"><a href="#cb2-153" tabindex="-1"></a>  <span class="fu">select</span>(Expt, id, Label, Precision)</span>
+<span id="cb2-154"><a href="#cb2-154" tabindex="-1"></a></span>
+<span id="cb2-155"><a href="#cb2-155" tabindex="-1"></a>tb.t <span class="ot">&lt;-</span> dd <span class="sc">%&gt;%</span> </span>
+<span id="cb2-156"><a href="#cb2-156" tabindex="-1"></a>  <span class="fu">group_by</span>(Expt) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-157"><a href="#cb2-157" tabindex="-1"></a>  <span class="fu">pairwise_t_test</span>(</span>
+<span id="cb2-158"><a href="#cb2-158" tabindex="-1"></a>    Precision <span class="sc">~</span> Label, <span class="at">paired =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb2-159"><a href="#cb2-159" tabindex="-1"></a>    <span class="at">ref.group =</span> <span class="st">&quot;Self&quot;</span>,</span>
+<span id="cb2-160"><a href="#cb2-160" tabindex="-1"></a>    <span class="at">p.adjust.method =</span> <span class="st">&quot;none&quot;</span></span>
+<span id="cb2-161"><a href="#cb2-161" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-162"><a href="#cb2-162" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">signif =</span> p.adj.signif) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-163"><a href="#cb2-163" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(p.adj, p.adj.signif))</span>
+<span id="cb2-164"><a href="#cb2-164" tabindex="-1"></a></span>
+<span id="cb2-165"><a href="#cb2-165" tabindex="-1"></a>tb.d <span class="ot">&lt;-</span> dd <span class="sc">%&gt;%</span> </span>
+<span id="cb2-166"><a href="#cb2-166" tabindex="-1"></a>  <span class="fu">group_by</span>(Expt) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-167"><a href="#cb2-167" tabindex="-1"></a>  <span class="fu">cohens_d</span>(Precision <span class="sc">~</span> Label, <span class="at">paired =</span> <span class="cn">TRUE</span>, <span class="at">ref.group =</span> <span class="st">&quot;Self&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-168"><a href="#cb2-168" tabindex="-1"></a>  <span class="fu">select</span>(effsize, magnitude)</span>
+<span id="cb2-169"><a href="#cb2-169" tabindex="-1"></a></span>
+<span id="cb2-170"><a href="#cb2-170" tabindex="-1"></a><span class="fu">cbind</span>(tb.t, tb.d) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-171"><a href="#cb2-171" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">4</span>, <span class="at">format =</span> <span class="st">&quot;simple&quot;</span>, <span class="at">caption =</span> <span class="st">&quot;Pairwise t-test&quot;</span>)</span></code></pre></div>
+<table>
+<caption>Pairwise t-test</caption>
+<thead>
+<tr class="header">
+<th align="right">Expt</th>
+<th align="left">.y.</th>
+<th align="left">group1</th>
+<th align="left">group2</th>
+<th align="right">n1</th>
+<th align="right">n2</th>
+<th align="right">statistic</th>
+<th align="right">df</th>
+<th align="right">p</th>
+<th align="left">signif</th>
+<th align="right">effsize</th>
+<th align="left">magnitude</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="left">Precision</td>
+<td align="left">Self</td>
+<td align="left">Friend</td>
+<td align="right">27</td>
+<td align="right">27</td>
+<td align="right">3.0096</td>
+<td align="right">26</td>
+<td align="right">0.006</td>
+<td align="left">**</td>
+<td align="right">0.5792</td>
+<td align="left">moderate</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">Precision</td>
+<td align="left">Self</td>
+<td align="left">Friend</td>
+<td align="right">28</td>
+<td align="right">28</td>
+<td align="right">2.7750</td>
+<td align="right">27</td>
+<td align="right">0.010</td>
+<td align="left">**</td>
+<td align="right">0.5244</td>
+<td align="left">moderate</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">Precision</td>
+<td align="left">Self</td>
+<td align="left">Friend</td>
+<td align="right">25</td>
+<td align="right">25</td>
+<td align="right">2.9172</td>
+<td align="right">24</td>
+<td align="right">0.008</td>
+<td align="left">**</td>
+<td align="right">0.5834</td>
+<td align="left">moderate</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">Precision</td>
+<td align="left">Self</td>
+<td align="left">Friend</td>
+<td align="right">28</td>
+<td align="right">28</td>
+<td align="right">2.1960</td>
+<td align="right">27</td>
+<td align="right">0.037</td>
+<td align="left">*</td>
+<td align="right">0.4150</td>
+<td align="left">small</td>
+</tr>
+</tbody>
+</table>
+<p>Among the experiments, Experiment 4 yielded the smallest effect size
+(Cohen’s d = 0.415). To conservatively estimate the required sample
+size, we adopted <strong>Cohen’s d = 0.41</strong> for the power
+analysis.</p>
+<p><br></p>
+<hr />
+<p><br></p>
+</div>
+<div id="design" class="section level1">
+<h1>2. Design</h1>
+<p>Guided by a <a
+href="https://rawgit.com/nicebread/BFDA/master/package/doc/BFDA_manual.html"><strong>sequential
+Bayes factor design analysis (sBFDA)</strong></a> with predefined
+minimum and maximum limits, the sample size will be determined, and
+subjects will be recruited accordingly.</p>
+<ul>
+<li><p>In an SBF design, the Bayes factor (BF) is computed each time new
+data are added. If the BF exceeds a predefined threshold, data
+collection is terminated; otherwise, additional subjects are recruited
+(i.e., optional stopping). Compared to fixed-N designs, SBF designs
+typically require fewer subjects on average, offering more efficient use
+of resources such as time and funding (<a
+href="https://doi.org/10.1037/met0000061">Schönbrodt et al.,
+2017</a>).</p></li>
+<li><p>To avoid erroneous rejection of a true <span
+class="math inline">\(H_1\)</span> or erroneous acceptance of a false
+<span class="math inline">\(H_0\)</span>, which are more likely with
+small samples, it is recommended to set a minimum sample size. In this
+study, the first BF calculation will be conducted when 52 subjects have
+been collected (<span class="math inline">\(N_{min}=52\)</span>), which
+corresponds to approximately twice the sample sizes reported in <a
+href="https://doi.org/10.1080/09658211.2024.2341709">Yin and Chen (2024;
+N = 25~28)</a>.</p></li>
+<li><p>Due to counterbalancing requirements (e.g., color and response
+key assignments), subjects will be recruited in multiples of four. Thus,
+BF will be updated after every additional group of four subjects beyond
+the minimum sample size.</p></li>
+<li><p>The decision threshold for the BF is set at 6 (<a
+href="https://shorturl.at/gwQE4">Schönbrodt &amp; Wagenmakers,
+2018</a>). Data collection will stop when <span
+class="math inline">\(BF_{10} &gt; 6\)</span> or <span
+class="math inline">\(BF_{01} &gt; 6\)</span> (i.e., when <span
+class="math inline">\(BF_{10} &lt; 1/6\)</span>).</p></li>
+</ul>
+<blockquote>
+<p>“For the following analyses, we will choose a relatively small
+symmetric decision boundary of 6, classified as “moderate evidence” by
+Lee and Wagenmakers (2014), assuming that it represents a reasonable
+starting point for a good trade-off between efficiency and
+informativeness.”</p>
+<footer>
+— Stefan et al. (2019, BRM, pp. 2054)
+</footer>
+</blockquote>
+<ul>
+<li><p>If the BF does not reach the decision threshold, data collection
+will continue until a maximum of 100 subjects is reached (<span
+class="math inline">\(N_{max}=100\)</span>).</p></li>
+<li><p>To estimate the statistical properties of the design, a BFDA was
+conducted. To take a conservative approach to sample size estimation, we
+set the minimum expected effect size to d = 0.41, corresponding to the
+smallest observed effect in Experiment 4 of <a
+href="https://doi.org/10.1080/09658211.2024.2341709">Yin and Chen
+(2024)</a>.</p></li>
+<li><p>The default prior used in both JASP and the BayesFactor R package
+(i.e., objective prior, which is a zero-centered Cauchy prior with a
+scale of 0.707) was employed as both the design prior and the analysis
+prior in BFDA. Although this default prior yields a higher false
+negative rate for true <span class="math inline">\(H_1\)</span> than an
+informed prior (or subjective prior) when the effect size is d = 0.41,
+it results in a lower false positive rate for false <span
+class="math inline">\(H_0\)</span> (<a
+href="https://link.springer.com/article/10.3758/s13428-018-01189-8">Stefan
+et al., 2019</a>).</p></li>
+</ul>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode r fold-show"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>pList <span class="ot">&lt;-</span> <span class="fu">list</span>(<span class="st">&quot;Cauchy&quot;</span>,<span class="fu">list</span>(<span class="at">prior.location=</span><span class="dv">0</span>, <span class="at">prior.scale=</span><span class="fu">sqrt</span>(<span class="dv">2</span>)<span class="sc">/</span><span class="dv">2</span>)) <span class="co"># default prior</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co"># pList &lt;- list(&quot;t&quot;, list(prior.location=0.35, prior.scale=0.102, prior.df=3)) # informed prior</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>nMin <span class="ot">&lt;-</span> <span class="dv">52</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>nMax <span class="ot">&lt;-</span> <span class="dv">100</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>nB <span class="ot">&lt;-</span> <span class="dv">1000</span> </span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>nStep <span class="ot">&lt;-</span> <span class="dv">4</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>sim41.H1 <span class="ot">&lt;-</span> <span class="fu">BFDA.sim</span>(<span class="at">expected.ES=</span><span class="fl">0.41</span>, <span class="at">type=</span><span class="st">&quot;t.paired&quot;</span>, <span class="at">design=</span><span class="st">&quot;sequential&quot;</span>, <span class="at">prior=</span>pList,</span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>                     <span class="at">n.min=</span>nMin, <span class="at">n.max=</span>nMax, <span class="at">stepsize =</span> nStep, <span class="at">alternative=</span><span class="st">&quot;greater&quot;</span>, </span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>                     <span class="at">boundary=</span><span class="cn">Inf</span>, <span class="at">B=</span>nB, <span class="at">cores=</span><span class="dv">4</span>, <span class="at">verbose=</span><span class="cn">TRUE</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>sim.H0 <span class="ot">&lt;-</span> <span class="fu">BFDA.sim</span>(<span class="at">expected.ES=</span><span class="dv">0</span>, <span class="at">type=</span><span class="st">&quot;t.paired&quot;</span>, <span class="at">design=</span><span class="st">&quot;sequential&quot;</span>, <span class="at">prior=</span>pList,</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>                   <span class="at">n.min=</span>nMin, <span class="at">n.max=</span>nMax, <span class="at">stepsize =</span> nStep, <span class="at">alternative=</span><span class="st">&quot;greater&quot;</span>, </span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>                   <span class="at">boundary=</span><span class="cn">Inf</span>, <span class="at">B=</span>nB, <span class="at">cores=</span><span class="dv">4</span>, <span class="at">verbose=</span><span class="cn">TRUE</span>)</span></code></pre></div>
+<p><br></p>
+<hr />
+<p><br></p>
+</div>
+<div id="analysis" class="section level1">
+<h1>3. Analysis</h1>
+<div id="h_1" class="section level2">
+<h2>3.1 <span class="math inline">\(H_1\)</span></h2>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode r fold-show"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>( h1 <span class="ot">&lt;-</span> <span class="fu">BFDA.analyze</span>(sim41.H1, <span class="at">design=</span><span class="st">&quot;sequential&quot;</span>, <span class="at">boundary=</span><span class="dv">6</span>, <span class="at">n.min =</span> <span class="dv">52</span>, <span class="at">n.max =</span> <span class="dv">100</span>) )</span></code></pre></div>
+<pre><code>##                                outcome percentage
+## 1 Studies terminating at n.max (n=100)       4.2%
+## 2    Studies terminating at a boundary      95.8%
+## 3       --&gt; Terminating at H1 boundary      95.7%
+## 4       --&gt; Terminating at H0 boundary       0.1%
+## 
+## Of 4.2% of studies terminating at n.max (n=100):
+## 1.4% showed evidence for H1 (BF &gt; 3)
+## 2.7% were inconclusive (3 &gt; BF &gt; 1/3)
+## 0.1% showed evidence for H0 (BF &lt; 1/3)
+## 
+## Average sample number (ASN) at stopping point (both boundary hits and n.max): n = 60
+## 
+## Sample number quantiles (50/80/90/95%) at stopping point:
+## 50% 80% 90% 95% 
+##  52  68  84 100</code></pre>
+<p>When the effect size is Cohen’s d = 0.41, the probability that <span
+class="math inline">\(BF &gt; 6\)</span> (i.e., statistical power) is
+95.7%, and the probability that <span class="math inline">\(BF &lt;
+1/6\)</span> (false negative rate) is 0.1%. The probability that the BF
+does not exceed the threshold is 4.2%; among these, 1.4% had <span
+class="math inline">\(BF &gt; 3\)</span>.</p>
+<p>In 1,000 simulations, the average sample size when the experiment
+stopped was 60 subjects. In 80% of the simulated samples, the threshold
+(6 or 1/6) was reached when the sample size was 68 or fewer.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># ceiling(quantile(h1$endpoint.n, prob=.80)) # = 68</span></span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">plot</span>(sim41.H1, <span class="at">n.min=</span><span class="dv">52</span>, <span class="at">n.max=</span><span class="dv">100</span>, <span class="at">boundary=</span><span class="fu">c</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">6</span>, <span class="dv">6</span>), <span class="at">n.trajectories =</span> <span class="dv">100</span>)</span></code></pre></div>
+<p><img src="bfda_SPE8VCS2_files/figure-html/bfda_plot_h1-1.png" width="672" /></p>
+</div>
+<div id="h_0" class="section level2">
+<h2>3.2 <span class="math inline">\(H_0\)</span></h2>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode r fold-show"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>( h0 <span class="ot">&lt;-</span> <span class="fu">BFDA.analyze</span>(sim.H0, <span class="at">design=</span><span class="st">&quot;sequential&quot;</span>, <span class="at">boundary=</span><span class="dv">6</span>, <span class="at">n.min =</span> <span class="dv">52</span>, <span class="at">n.max =</span> <span class="dv">100</span>) )</span></code></pre></div>
+<pre><code>##                                outcome percentage
+## 1 Studies terminating at n.max (n=100)      18.4%
+## 2    Studies terminating at a boundary      81.6%
+## 3       --&gt; Terminating at H1 boundary       1.8%
+## 4       --&gt; Terminating at H0 boundary      79.8%
+## 
+## Of 18.4% of studies terminating at n.max (n=100):
+## 0.2% showed evidence for H1 (BF &gt; 3)
+## 10.2% were inconclusive (3 &gt; BF &gt; 1/3)
+## 8% showed evidence for H0 (BF &lt; 1/3)
+## 
+## Average sample number (ASN) at stopping point (both boundary hits and n.max): n = 67
+## 
+## Sample number quantiles (50/80/90/95%) at stopping point:
+## 50% 80% 90% 95% 
+##  52  96 100 100</code></pre>
+<p>When the effect size is zero (i.e., under the null), the probability
+that <span class="math inline">\(BF &lt; 1/6\)</span> is 79.8%, and the
+probability that <span class="math inline">\(BF &gt; 6\)</span> (false
+positive rate) is 1.8%. The probability that the BF does not exceed the
+threshold is 18.4%, and among these, 8% had <span
+class="math inline">\(BF &lt; 1/3\)</span>.</p>
+<p>In 1,000 simulations, the average sample size at the stopping point
+was 67 subjects In 80% of the simulated samples, the threshold (6 or
+1/6) was reached when the sample size was 96 or fewer.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="co"># ceiling(quantile(h0$endpoint.n, prob=.80)) # = 96</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="fu">plot</span>(sim.H0, <span class="at">n.min=</span><span class="dv">52</span>, <span class="at">n.max=</span><span class="dv">100</span>, <span class="at">boundary=</span><span class="fu">c</span>(<span class="dv">1</span><span class="sc">/</span><span class="dv">6</span>, <span class="dv">6</span>), <span class="at">n.trajectories =</span> <span class="dv">100</span>)</span></code></pre></div>
+<p><img src="bfda_SPE8VCS2_files/figure-html/bfda_plot_h0-1.png" width="672" /></p>
+<p><br><br></p>
+<hr />
+<p><br></p>
+</div>
+</div>
+<div id="session-info" class="section level1">
+<h1>Session Info</h1>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="do">## R version 4.5.1 (2025-06-13)</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="do">## Platform: aarch64-apple-darwin20</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="do">## Running under: macOS Sequoia 15.6.1</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="do">## Matrix products: default</span></span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a><span class="do">## BLAS:   /System/Library/Frameworks/Accelerate.framework/Versions/A/Frameworks/vecLib.framework/Versions/A/libBLAS.dylib </span></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="do">## LAPACK: /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.1</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="do">## locale:</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="do">## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8</span></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="do">## time zone: Asia/Seoul</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="do">## tzcode source: internal</span></span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="do">## attached base packages:</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="do">## [1] parallel  stats     graphics  grDevices utils     datasets  methods  </span></span>
+<span id="cb10-18"><a href="#cb10-18" tabindex="-1"></a><span class="do">## [8] base     </span></span>
+<span id="cb10-19"><a href="#cb10-19" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb10-20"><a href="#cb10-20" tabindex="-1"></a><span class="do">## other attached packages:</span></span>
+<span id="cb10-21"><a href="#cb10-21" tabindex="-1"></a><span class="do">##  [1] BFDA_0.5.1             doParallel_1.0.17      iterators_1.0.14      </span></span>
+<span id="cb10-22"><a href="#cb10-22" tabindex="-1"></a><span class="do">##  [4] foreach_1.5.2          mixturer_0.1.0         klippy_0.0.0.9500     </span></span>
+<span id="cb10-23"><a href="#cb10-23" tabindex="-1"></a><span class="do">##  [7] patchwork_1.3.2        cowplot_1.2.0          see_0.12.0            </span></span>
+<span id="cb10-24"><a href="#cb10-24" tabindex="-1"></a><span class="do">## [10] ggpubr_0.6.1           Superpower_0.2.4.1     BayesFactor_0.9.12-4.7</span></span>
+<span id="cb10-25"><a href="#cb10-25" tabindex="-1"></a><span class="do">## [13] Matrix_1.7-4           coda_0.19-4.1          rstatix_0.7.2         </span></span>
+<span id="cb10-26"><a href="#cb10-26" tabindex="-1"></a><span class="do">## [16] knitr_1.50             psych_2.5.6            lubridate_1.9.4       </span></span>
+<span id="cb10-27"><a href="#cb10-27" tabindex="-1"></a><span class="do">## [19] forcats_1.0.0          stringr_1.5.2          dplyr_1.1.4           </span></span>
+<span id="cb10-28"><a href="#cb10-28" tabindex="-1"></a><span class="do">## [22] purrr_1.1.0            readr_2.1.5            tidyr_1.3.1           </span></span>
+<span id="cb10-29"><a href="#cb10-29" tabindex="-1"></a><span class="do">## [25] tibble_3.3.0           ggplot2_4.0.0          tidyverse_2.0.0       </span></span>
+<span id="cb10-30"><a href="#cb10-30" tabindex="-1"></a><span class="do">## </span></span>
+<span id="cb10-31"><a href="#cb10-31" tabindex="-1"></a><span class="do">## loaded via a namespace (and not attached):</span></span>
+<span id="cb10-32"><a href="#cb10-32" tabindex="-1"></a><span class="do">##   [1] RColorBrewer_1.1-3  Rmisc_1.5.1         rstudioapi_0.17.1  </span></span>
+<span id="cb10-33"><a href="#cb10-33" tabindex="-1"></a><span class="do">##   [4] jsonlite_2.0.0      datawizard_1.2.0    magrittr_2.0.4     </span></span>
+<span id="cb10-34"><a href="#cb10-34" tabindex="-1"></a><span class="do">##   [7] estimability_1.5.1  magick_2.9.0        farver_2.1.2       </span></span>
+<span id="cb10-35"><a href="#cb10-35" tabindex="-1"></a><span class="do">##  [10] nloptr_2.2.1        rmarkdown_2.29      contfrac_1.1-12    </span></span>
+<span id="cb10-36"><a href="#cb10-36" tabindex="-1"></a><span class="do">##  [13] vctrs_0.6.5         minqa_1.2.8         htmltools_0.5.8.1  </span></span>
+<span id="cb10-37"><a href="#cb10-37" tabindex="-1"></a><span class="do">##  [16] plotrix_3.8-4       truncnorm_1.0-9     broom_1.0.10       </span></span>
+<span id="cb10-38"><a href="#cb10-38" tabindex="-1"></a><span class="do">##  [19] deSolve_1.40        Formula_1.2-5       sass_0.4.10        </span></span>
+<span id="cb10-39"><a href="#cb10-39" tabindex="-1"></a><span class="do">##  [22] hypergeo_1.2-14     bslib_0.9.0         plyr_1.8.9         </span></span>
+<span id="cb10-40"><a href="#cb10-40" tabindex="-1"></a><span class="do">##  [25] emmeans_1.11.2-8    cachem_1.1.0        sfsmisc_1.1-22     </span></span>
+<span id="cb10-41"><a href="#cb10-41" tabindex="-1"></a><span class="do">##  [28] elliptic_1.4-0      mime_0.13           lifecycle_1.0.4    </span></span>
+<span id="cb10-42"><a href="#cb10-42" tabindex="-1"></a><span class="do">##  [31] pkgconfig_2.0.3     R6_2.6.1            fastmap_1.2.0      </span></span>
+<span id="cb10-43"><a href="#cb10-43" tabindex="-1"></a><span class="do">##  [34] rbibutils_2.3       shiny_1.11.1        digest_0.6.37      </span></span>
+<span id="cb10-44"><a href="#cb10-44" tabindex="-1"></a><span class="do">##  [37] numDeriv_2016.8-1.1 qgam_2.0.0          labeling_0.4.3     </span></span>
+<span id="cb10-45"><a href="#cb10-45" tabindex="-1"></a><span class="do">##  [40] timechange_0.3.0    abind_1.4-8         mgcv_1.9-3         </span></span>
+<span id="cb10-46"><a href="#cb10-46" tabindex="-1"></a><span class="do">##  [43] compiler_4.5.1      rngtools_1.5.2      withr_3.0.2        </span></span>
+<span id="cb10-47"><a href="#cb10-47" tabindex="-1"></a><span class="do">##  [46] S7_0.2.0            backports_1.5.0     carData_3.0-5      </span></span>
+<span id="cb10-48"><a href="#cb10-48" tabindex="-1"></a><span class="do">##  [49] ggsignif_0.6.4      MASS_7.3-65         caTools_1.18.3     </span></span>
+<span id="cb10-49"><a href="#cb10-49" tabindex="-1"></a><span class="do">##  [52] tools_4.5.1         httpuv_1.6.16       TeachingDemos_2.13 </span></span>
+<span id="cb10-50"><a href="#cb10-50" tabindex="-1"></a><span class="do">##  [55] glue_1.8.0          abtest_1.0.1        nlme_3.1-168       </span></span>
+<span id="cb10-51"><a href="#cb10-51" tabindex="-1"></a><span class="do">##  [58] tufte_0.14.0        promises_1.3.3      grid_4.5.1         </span></span>
+<span id="cb10-52"><a href="#cb10-52" tabindex="-1"></a><span class="do">##  [61] reshape2_1.4.4      generics_0.1.4      gtable_0.3.6       </span></span>
+<span id="cb10-53"><a href="#cb10-53" tabindex="-1"></a><span class="do">##  [64] tzdb_0.5.0          hms_1.1.3           car_3.1-3          </span></span>
+<span id="cb10-54"><a href="#cb10-54" tabindex="-1"></a><span class="do">##  [67] utf8_1.2.6          pillar_1.11.0       later_1.4.4        </span></span>
+<span id="cb10-55"><a href="#cb10-55" tabindex="-1"></a><span class="do">##  [70] splines_4.5.1       lattice_0.22-7      tidyselect_1.2.1   </span></span>
+<span id="cb10-56"><a href="#cb10-56" tabindex="-1"></a><span class="do">##  [73] pbapply_1.7-4       reformulas_0.4.1    gridExtra_2.3      </span></span>
+<span id="cb10-57"><a href="#cb10-57" tabindex="-1"></a><span class="do">##  [76] xfun_0.53           stringi_1.8.7       yaml_2.3.10        </span></span>
+<span id="cb10-58"><a href="#cb10-58" tabindex="-1"></a><span class="do">##  [79] pacman_0.5.1        boot_1.3-32         evaluate_1.0.5     </span></span>
+<span id="cb10-59"><a href="#cb10-59" tabindex="-1"></a><span class="do">##  [82] codetools_0.2-20    cli_3.6.5           xtable_1.8-4       </span></span>
+<span id="cb10-60"><a href="#cb10-60" tabindex="-1"></a><span class="do">##  [85] Rdpack_2.6.4        jquerylib_0.1.4     afex_1.5-0         </span></span>
+<span id="cb10-61"><a href="#cb10-61" tabindex="-1"></a><span class="do">##  [88] Rcpp_1.1.0          MatrixModels_0.5-4  assertthat_0.2.1   </span></span>
+<span id="cb10-62"><a href="#cb10-62" tabindex="-1"></a><span class="do">##  [91] bayestestR_0.17.0   doRNG_1.8.6.2       bitops_1.0-9       </span></span>
+<span id="cb10-63"><a href="#cb10-63" tabindex="-1"></a><span class="do">##  [94] lme4_1.1-37         viridisLite_0.4.2   mvtnorm_1.3-3      </span></span>
+<span id="cb10-64"><a href="#cb10-64" tabindex="-1"></a><span class="do">##  [97] lmerTest_3.1-3      scales_1.4.0        insight_1.4.2      </span></span>
+<span id="cb10-65"><a href="#cb10-65" tabindex="-1"></a><span class="do">## [100] crayon_1.5.3        rlang_1.1.6         mnormt_2.1.1</span></span></code></pre></div>
+</div>
+
+<p>Copyright &copy; 2025 CogNIPS. All rights reserved.</p>
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = false;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

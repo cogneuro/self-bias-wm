@@ -1,0 +1,17 @@
+name: "self-bias-wm"
+output_dir: "."
+navbar:
+  title: "Self-Bias in WM"
+  left:
+    - text: "Exp 1"
+      href: analyzeSPE8VCS1.html
+    - text: "Exp 2 (BFDA)"
+      href: bfda_SPE8VCS2.html
+    - text: "Exp 2 (results)"
+      href: analyzeSPE8VCS2.html
+output:
+  html_document:
+    theme: cosmo
+    highlight: pygments
+    include:
+      after_body: footer.html      

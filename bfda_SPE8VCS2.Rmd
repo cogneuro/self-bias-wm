@@ -1,0 +1,265 @@
+---
+title: "Sequential Bayes Factor Design Analysis"
+author: "Woojeong Lee & Do-Joon Yi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapse: false
+      smooth_scroll: false
+    number_sections: false
+    theme: cosmo 
+    highlight: haddock
+    code_folding: hide
+subtitle: Self-Priority Effects on Nonspatial Working Memory
+mainfont: Noto Sans CJK KR
+---
+
+```{r working_dir, echo=FALSE}
+load("data/simPrecision.Rdata")
+```
+
+```{css, echo=FALSE}
+pre code, pre, code {
+  white-space: pre-wrap !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+blockquote {
+    padding: 10px 20px;
+    margin: 0 0 20px;
+    font-size: 14px;
+    border-left: 5px solid #eee;
+}
+```
+
+```{r setup, message=FALSE}
+pacman::p_load(tidyverse, psych, knitr, rstatix, ggpubr)
+pacman::p_load_gh("nicebread/BFDA", 'eddjberry/mixturer')
+options(dplyr.summarise.inform=FALSE) # suppress warning in regards to regrouping 
+```
+
+
+
+# 1. Yin & Chen (2024)
+
+We analyzed the data from Experiment 1–2, the low-load condition of Experiment 3, and the no-distraction condition of Experiment 4 from the [open dataset](http://osf.io/myca9) provided by [Yin and Chen (2024)](https://doi.org/10.1080/09658211.2024.2341709). Excluding the Stranger condition, we computed model-free precision for the Self and Friend conditions. Subsequently, paired-sample t-tests were conducted to compare the Self and Friend conditions in each experiment, and effect sizes were computed using Cohen’s d.
+
+```{r data, collapse=TRUE, fig.height=3}
+# As Yin and Chen measured memory for line orientations, memory errors should range [ –90°,  90°]. However, the code they shared transforms errors into a [–180°, 180°] range, likely due to the use of JV10_error.m by Paul Bays, which expects inputs within [–π, π]. To compensate for this, Yin and Chen converted degrees to radians using deg/90 × π instead of the conventional deg/180 × π. In other words, values that should have been scaled to [–π/2, π/2] were instead scaled to [–π, π], effectively doubling the error range before being passed into JV10_error.m. We followed the same approach in the present analysis.
+
+deg2rad <- function(deg){deg * pi / 90} # originally 90 should be 180. see above.
+
+wrap <- function(data, bound = pi) {
+  ((data + bound) %% (bound * 2)) - bound
+}
+
+d1 <- read.csv('YinChen2024Memory/Results/E1results.csv', header = T) %>% 
+  mutate(error = ifelse(Lshape==Label, 
+                        probeAngle - angle1,
+                        probeAngle - angle2), 
+         error = wrap(deg2rad(error)),
+         Label = factor(Label,
+                        levels = c(1,2,3),
+                        labels = c('Self', 'Friend', 'Stranger')),
+         id = subject + 100,
+         Expt = 1) %>% 
+  select(Expt, id, Label, error)
+# write.csv(d, file = "convertedE1to4.csv", row.names = FALSE)
+headTail(d1)
+
+d1 %>% group_by(id, Label) %>% 
+  group_modify( ~ bays_2009_error(.$error)) %>% 
+  ungroup() %>% 
+  group_by(Label) %>% 
+  get_summary_stats(precision, type="mean") # closely replicating Yin's
+
+d1 %>% group_by(id, Label) %>% 
+  group_modify( ~ bays_2009_error(.$error)) %>% 
+  ungroup() %>% 
+  pairwise_t_test(precision ~ Label, paired = TRUE)  # closely replicating Yin's
+
+d2 <- read.csv('YinChen2024Memory/Results/E2results.csv', header = T) %>% 
+  mutate(error = ifelse(Lshape==Label, 
+                        probeAngle - angle1,
+                        probeAngle - angle2), 
+         error = wrap(deg2rad(error)),
+         Label = factor(Label,
+                        levels = c(1,2,3),
+                        labels = c('Self', 'Friend', 'Stranger')),
+         id = subject + 200,
+         Expt = 2) %>% 
+  select(Expt, id, Label, error)
+
+d3 <- read.csv('YinChen2024Memory/Results/E3results.csv', header = T) %>% 
+  mutate(error = ifelse(Loc1==Label, probeAngle - angle1,
+                        ifelse(Loc2==Label, probeAngle - angle2,
+                               probeAngle - angle3)), 
+         error = wrap(deg2rad(error)),
+         Label = factor(Label,
+                        levels = c(1,2,3),
+                        labels = c('Self', 'Friend', 'Stranger')),
+         absError = abs(error),
+         id = subject + 300,
+         Expt = 3) %>% 
+  filter(ISI == 1.6) %>% 
+  select(Expt, id, Label, error)
+
+d4 <- read.csv('YinChen2024Memory/Results/E4results.csv', header = T) %>% 
+  mutate(error = ifelse(loc1==Label, 
+                        probeAngle - angle1,
+                        probeAngle - angle2), 
+         error = wrap(deg2rad(error)),
+         Label = factor(Label,
+                        levels = c(1,2,3),
+                        labels = c('Self', 'Friend', 'Stranger')),
+         absError = abs(error),
+         id = subject + 400,
+         Expt = 4) %>% 
+  filter(suffix == 5) %>% 
+  select(Expt, id, Label, error)
+
+d <- bind_rows(list(d1, d2, d3, d4)) %>% 
+  mutate(Expt = factor(Expt)) %>% 
+  filter(Label != 'Stranger') %>% 
+  droplevels()
+
+headTail(d)
+
+table(d$Label, d$id)
+
+# hist(d$error, xlab = "Memory error", main = "Error distribution")
+range(d$error) # Memory errors were distributed within the range of [–π, π].
+
+dd <- d %>% 
+  group_by(id, Label) %>% 
+  group_modify( ~ bays_2009_error(.$error)) %>% 
+  ungroup() %>% 
+  mutate(Expt = round(id/100),
+         Precision = precision) %>% 
+  select(Expt, id, Label, Precision)
+
+tb.t <- dd %>% 
+  group_by(Expt) %>% 
+  pairwise_t_test(
+    Precision ~ Label, paired = TRUE,
+    ref.group = "Self",
+    p.adjust.method = "none"
+  ) %>% 
+  mutate(signif = p.adj.signif) %>% 
+  select(-c(p.adj, p.adj.signif))
+
+tb.d <- dd %>% 
+  group_by(Expt) %>% 
+  cohens_d(Precision ~ Label, paired = TRUE, ref.group = "Self") %>% 
+  select(effsize, magnitude)
+
+cbind(tb.t, tb.d) %>% 
+  kable(digits = 4, format = "simple", caption = "Pairwise t-test")
+```
+
+Among the experiments, Experiment 4 yielded the smallest effect size (Cohen’s d = 0.415). To conservatively estimate the required sample size, we adopted **Cohen’s d = 0.41** for the power analysis.
+
+
+<br>
+
+---
+
+<br>
+
+
+# 2. Design
+
+Guided by a [**sequential Bayes factor design analysis (sBFDA)**](https://rawgit.com/nicebread/BFDA/master/package/doc/BFDA_manual.html) with predefined minimum and maximum limits, the sample size will be determined, and subjects will be recruited accordingly.
+
+* In an SBF design, the Bayes factor (BF) is computed each time new data are added. If the BF exceeds a predefined threshold, data collection is terminated; otherwise, additional subjects are recruited (i.e., optional stopping). Compared to fixed-N designs, SBF designs typically require fewer subjects on average, offering more efficient use of resources such as time and funding ([Schönbrodt et al., 2017](https://doi.org/10.1037/met0000061)).
+
+* To avoid erroneous rejection of a true $H_1$ or erroneous acceptance of a false $H_0$, which are more likely with small samples, it is recommended to set a minimum sample size. In this study, the first BF calculation will be conducted when 52 subjects have been collected ($N_{min}=52$), which corresponds to approximately twice the sample sizes reported in [Yin and Chen (2024; N = 25~28)](https://doi.org/10.1080/09658211.2024.2341709).
+
+* Due to counterbalancing requirements (e.g., color and response key assignments), subjects will be recruited in multiples of four. Thus, BF will be updated after every additional group of four subjects beyond the minimum sample size.
+
+* The decision threshold for the BF is set at 6 ([Schönbrodt & Wagenmakers, 2018](https://shorturl.at/gwQE4)). Data collection will stop when $BF_{10} > 6$ or $BF_{01} > 6$ (i.e., when $BF_{10} < 1/6$).
+
+> "For the following analyses, we will choose a relatively small symmetric decision boundary of 6, classified as “moderate evidence” by Lee and Wagenmakers (2014), assuming that it represents a reasonable starting point for a good trade-off between efficiency and informativeness."
+>
+> `r tufte::quote_footer('--- Stefan et al. (2019, BRM, pp. 2054)')`
+
+* If the BF does not reach the decision threshold, data collection will continue until a maximum of 100 subjects is reached ($N_{max}=100$).
+
+* To estimate the statistical properties of the design, a BFDA was conducted. To take a conservative approach to sample size estimation, we set the minimum expected effect size to d = 0.41, corresponding to the smallest observed effect in Experiment 4 of [Yin and Chen (2024)](https://doi.org/10.1080/09658211.2024.2341709).
+
+* The default prior used in both JASP and the BayesFactor R package (i.e., objective prior, which is a zero-centered Cauchy prior with a scale of 0.707) was employed as both the design prior and the analysis prior in BFDA. Although this default prior yields a higher false negative rate for true $H_1$ than an informed prior (or subjective prior) when the effect size is d = 0.41, it results in a lower false positive rate for false $H_0$ ([Stefan et al., 2019](https://link.springer.com/article/10.3758/s13428-018-01189-8)). 
+
+
+```{r bfda_sim, eval=FALSE, class.source='fold-show'}
+pList <- list("Cauchy",list(prior.location=0, prior.scale=sqrt(2)/2)) # default prior
+# pList <- list("t", list(prior.location=0.35, prior.scale=0.102, prior.df=3)) # informed prior
+nMin <- 52
+nMax <- 100
+nB <- 1000 
+nStep <- 4
+
+sim41.H1 <- BFDA.sim(expected.ES=0.41, type="t.paired", design="sequential", prior=pList,
+                     n.min=nMin, n.max=nMax, stepsize = nStep, alternative="greater", 
+                     boundary=Inf, B=nB, cores=4, verbose=TRUE)
+
+sim.H0 <- BFDA.sim(expected.ES=0, type="t.paired", design="sequential", prior=pList,
+                   n.min=nMin, n.max=nMax, stepsize = nStep, alternative="greater", 
+                   boundary=Inf, B=nB, cores=4, verbose=TRUE)
+```
+
+<br>
+
+---
+
+<br>
+
+
+# 3. Analysis
+
+## 3.1 $H_1$
+
+```{r bfda_h1, class.source='fold-show'}
+( h1 <- BFDA.analyze(sim41.H1, design="sequential", boundary=6, n.min = 52, n.max = 100) )
+```
+
+When the effect size is Cohen’s d = 0.41, the probability that $BF > 6$ (i.e., statistical power) is `r h1$upper.hit.frac*100`%, and the probability that $BF < 1/6$ (false negative rate) is `r h1$lower.hit.frac*100`%. The probability that the BF does not exceed the threshold is `r h1$n.max.hit.frac*100`%; among these, `r h1$n.max.hit.H1*100`% had $BF > 3$.
+
+In 1,000 simulations, the average sample size when the experiment stopped was `r h1$ASN` subjects. In 80% of the simulated samples, the threshold (6 or 1/6) was reached when the sample size was `r ceiling(quantile(h1$endpoint$n, probs=.8))` or fewer.
+
+```{r bfda_plot_h1, collapse=TRUE}
+# ceiling(quantile(h1$endpoint.n, prob=.80)) # = 68
+plot(sim41.H1, n.min=52, n.max=100, boundary=c(1/6, 6), n.trajectories = 100)
+```
+
+## 3.2 $H_0$
+
+```{r bfda_h0, class.source='fold-show'}
+( h0 <- BFDA.analyze(sim.H0, design="sequential", boundary=6, n.min = 52, n.max = 100) )
+```
+
+When the effect size is zero (i.e., under the null), the probability that $BF < 1/6$ is `r h0$lower.hit.frac*100`%, and the probability that $BF > 6$ (false positive rate) is `r h0$upper.hit.frac*100`%. The probability that the BF does not exceed the threshold is `r h0$n.max.hit.frac*100`%, and among these, `r h0$n.max.hit.H0*100`% had $BF < 1/3$.
+
+In 1,000 simulations, the average sample size at the stopping point was `r h0$ASN` subjects In 80% of the simulated samples, the threshold (6 or 1/6) was reached when the sample size was `r ceiling(quantile(h0$endpoint$n, probs=.8))` or fewer.
+
+```{r bfda_plot_h0, collapse=TRUE}
+# ceiling(quantile(h0$endpoint.n, prob=.80)) # = 96
+plot(sim.H0, n.min=52, n.max=100, boundary=c(1/6, 6), n.trajectories = 100)
+```
+
+
+
+<br><br>
+
+---
+
+<br>
+
+# Session Info
+
+```{r session_info, collapse=TRUE}
+sessionInfo()
+```

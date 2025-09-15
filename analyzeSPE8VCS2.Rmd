@@ -1,0 +1,633 @@
+---
+title: "Experiment 2"
+subtitle: "Self-Priority Effects on Nonspatial Working Memory"
+author: "Woojeong Lee & Do-Joon Yi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: 
+      collapse: false
+      smooth_scroll: false
+    number_sections: true
+    theme: cosmo 
+    highlight: haddock
+    code_folding: hide
+mainfont: Noto Sans CJK KR
+---
+
+```{css, echo=FALSE}
+pre code, pre, code {
+  white-space: pre !important;
+  overflow-x: scroll !important;
+  word-break: keep-all !important;
+  word-wrap: initial !important;
+}
+```
+
+
+```{r, collapse=TRUE}
+pacman::p_load(tidyverse, psych, knitr, rstatix, BayesFactor)
+pacman::p_load(ggpubr, see, cowplot)
+pacman::p_load_gh("thomasp85/patchwork", 'eddjberry/mixturer')
+if (!requireNamespace("Rmisc", quietly = TRUE)) install.packages("Rmisc")
+if (!requireNamespace("bayestestR", quietly = TRUE)) install.packages("bayestestR")
+if (!requireNamespace("magick", quietly = TRUE)) install.packages("magick")
+
+set.seed(1234567) # for reproducibility
+nIter <- 1e4 # Monte Carlo simulations for error < 1%. default = 1e4
+tOff <- 2.5 # RTtrimming
+
+options("scipen" = 100) # https://rfriend.tistory.com/224
+options(dplyr.summarise.inform=FALSE) # suppress warning in regards to regrouping 
+options(knitr.kable.NA = '')
+klippy::klippy()
+
+deg2rad <- function(deg){deg * pi / 180}
+
+# Plot for outlier check
+single_raincloud_plot <- function(df, Y, xMin, xMax, xBy, xLab){
+  df %>% ggplot(aes(x = 1, y = Y)) +
+    geom_violinhalf(flip = c(1,3), width = 0.5, color = "grey70", fill = "gray70") +
+    # geom_half_violin(aes(y = Y), side = "r", 
+    #                  color = "grey70", fill = "grey70") +
+    geom_point(aes(0.8, Y), size = 1.5,
+               color = "grey50", fill = "grey50", alpha = .5,
+               position = position_jitter(width = 0.15, height = 0)) +
+    geom_boxplot(width=0.05, alpha = 0.5, outliers = FALSE) +
+    scale_y_continuous(breaks=seq(xMin,xMax,by=xBy)) +
+    coord_flip(ylim = c(xMin, xMax), clip = "on") +
+    labs(y = xLab) +
+    theme_bw(base_size = 18) +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.title.y = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.y = element_blank(),
+          aspect.ratio = .3)
+}
+
+## Plot for results
+plotMatchLabel <- function(df, ylabel, ymin, ymax, yby, 
+                           isRT, ymin2, ymax2, yby2, flo = 0.1) {
+  names(df)[ncol(df)] <- "DV" # assuming DV on the last column
+  
+  df.g <- df %>%
+    Rmisc::summarySEwithin(measurevar = 'DV', idvar = 'SN',
+                           withinvars = c("Matching", "Label"))
+  
+  df.w <- df %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = DV)
+  
+  doff <- 0.03
+  tmp <- runif(nrow(df.w), -doff, doff)
+  spd1 <- rep(-0.14,nrow(df.w)) + tmp
+  spd2 <- rep( 0.14,nrow(df.w)) + tmp
+  
+  F1 <- ggplot() +
+    geom_bar(data=df.g, aes(x = Matching, y = DV, fill = Label), alpha = .6,
+             stat="identity", width=0.7, linewidth=0.5, color="black", 
+             position=position_dodge(.8)) +
+    # scale_fill_manual(values=c('#E69F00', '#56B4E9'),
+    #                   labels=c("Self", "Friend")) +
+    scale_fill_manual(values=c('#DC3220', '#005AB5'),
+                      labels=c("Self", "Friend")) +
+    geom_segment(data=df.w, color="black", alpha = 0.3, 
+                 aes(x=1+spd1, y=Match_Self, xend=1+spd2, yend=Match_Friend)) +
+    geom_segment(data=df.w, color="black", alpha = 0.3, 
+                 aes(x=2+spd1, y=Nonmatch_Self, xend=2+spd2, yend=Nonmatch_Friend)) +
+    geom_linerange(data=df.g, aes(x=Matching, ymin=DV-ci, ymax=DV+ci, group=Label),
+                   linewidth=1, position=position_dodge(0.8)) +
+    labs(x = "Matching", y = ylabel, fill='Label ') +
+    coord_cartesian(ylim = c(ymin, ymax), clip = "on") +
+    scale_y_continuous(breaks=seq(ymin, ymax, by = yby)) +
+    theme_bw(base_size = 18) +
+    theme(legend.position="top",
+          legend.spacing.x = unit(0.5, 'lines'),
+          legend.margin = margin(0, 0, 0, 0),
+          legend.background = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+  
+  if (isRT) { # Boolean: Nonmatch - Match
+    df2.w <- df.w %>% 
+      mutate(Self = Nonmatch_Self - Match_Self,
+             Friend = Nonmatch_Friend - Match_Friend) %>% 
+      select(SN, Self, Friend)
+  } else {
+    df2.w <- df.w %>% 
+      mutate(Self = Match_Self - Nonmatch_Self,
+             Friend = Match_Friend - Nonmatch_Friend) %>% 
+      select(SN, Self, Friend)
+  }
+  
+  df2 <- df2.w %>% 
+    pivot_longer(cols = c(Self, Friend), names_to = "Identity", values_to = "SPE") %>% 
+    mutate(Identity = factor(Identity, 
+                             labels = c("Self", "Friend"),
+                             levels = c("Self", "Friend")))
+  
+  df2.g <- df2 %>% 
+    mutate(Identity = factor(Identity)) %>% 
+    Rmisc::summarySEwithin(measurevar = "SPE", withinvars = "Identity", idvar = "SN")
+  
+  moff <- 0.1
+  doff <- 0.05
+  vpd <- rep(c(1-moff, 2+moff), nrow(df2)/2) # violin position dodge
+  dpd <- rep(c(1+moff, 2-moff), nrow(df2)/2) + # dot position dodge
+    rep(runif(nrow(df2)/2, -doff, doff), each=2)
+  
+  F2 <- cbind(df2, vpd, dpd) %>% 
+    ggplot(aes(x = Identity, y = SPE, group = Identity)) + 
+    geom_pointrange(data=df2.g, aes(x = Identity, ymin = SPE-ci, ymax = SPE+ci),
+                    linewidth = 1, size = 0.5, color = "black") +
+    geom_point(data=df2.g, aes(x = Identity, y = SPE),
+               size=2, color = "black", show.legend = FALSE) +
+    geom_hline(yintercept = 0) +
+    geom_violinhalf(aes(x = vpd, y = SPE, group = Identity),
+                    flip = c(1,3), width = 0.7, fill = "gray70") + 
+    # geom_point(aes(x = dpd, y = SPE, group = SN), alpha = 0.3) +
+    geom_line(aes(x = dpd, y = SPE, group = SN), color = "black", alpha = 0.3) +
+    labs(x = "Identity",
+         y = ifelse (isRT, "Nonmatch - Match", "Match - Nonmatch")) +
+    coord_cartesian(ylim = c(ymin2, ymax2), clip = "on") +
+    scale_y_continuous(labels = scales::number_format(accuracy = flo),
+                       breaks=seq(ymin2, ymax2, by = yby2)) +
+    theme_bw(base_size = 18) +
+    theme(panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
+  
+  F1 + F2 + plot_layout(nrow = 1, widths = c(2, 1.2))
+}
+```
+
+The current experiment was preregistered on the [Open Science Framework ](https://osf.io/bvfw8). Participants completed an associative learning task followed by a working memory task.
+
+<br>
+
+---
+
+<br>
+
+
+# Associative Learning Task
+
+The task was almost identical to thatin Experiment 1. Each trial presented a red or blue shape with a superimposed social label—“당신” (the Korean word for “You”) or “친구” (the Korean word for “Friend”). Participants were asked to judge whether the color of the shape matched the color that had been associated with the referent of the label (self or friend) prior to the experiment. Participants used both hands to make label-color matching responses: half pressed the leftmost button (of a 9-button response box) with the left hand for “Match” and the rightmost button with the right hand for “Nonmatch,” whereas the mapping was reversed for the other half of the participants. Accuracy was computed based on all responses, and response time (RT) was analyzed only for correct label-color matching responses.
+
+## Label-Matching Accuracy
+
+```{r, collapse=TRUE}
+lrn <- read.csv("data/datSPE8VCS2LRN.csv", header = TRUE) %>% 
+  mutate(SN = factor(SN),
+         Matching = factor(Matching, 
+                        levels = c("Match", "Nonmatch"), 
+                        labels = c("Match", "Nonmatch")),
+         Label = factor(Label, 
+                        levels = c("Self", "Friend"), 
+                        labels = c("Self", "Friend")),
+         RT = RT * 1000)
+str(lrn)
+length(unique(lrn$SN))
+table(lrn$SN)
+
+# Accuracy
+l.acc <- lrn %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(Accuracy = mean(Correct)) %>% 
+  ungroup()
+
+plotMatchLabel(l.acc, "Accuracy", 0.5, 1, .1, FALSE, -.3, .3, .1)
+
+# Descriptive
+l.acc %>% group_by(Matching, Label) %>% 
+  get_summary_stats(Accuracy, show = c("mean", "sd")) %>% 
+  kable(digits = 2, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.lAcc <- anovaBF(Accuracy ~ Matching*Label + SN, data = as.data.frame(l.acc), 
+                     whichRandom = "SN", iterations = nIter, progress = FALSE) )
+
+# ANOVA
+cbind(
+  anova_test(
+    data = l.acc, dv = Accuracy, wid = SN,
+    within = c(Matching, Label),
+    effect.size = "pes") %>% 
+    get_anova_table(),
+  tibble(BF10 = c( exp((bf.lAcc[3]/bf.lAcc[2])@bayesFactor$bf), # Matching
+                   exp((bf.lAcc[3]/bf.lAcc[1])@bayesFactor$bf), # Label
+                   exp((bf.lAcc[4]/bf.lAcc[3])@bayesFactor$bf) ), # Matching x Label
+         BF01 = c( exp((bf.lAcc[2]/bf.lAcc[3])@bayesFactor$bf),
+                   exp((bf.lAcc[1]/bf.lAcc[3])@bayesFactor$bf),
+                   exp((bf.lAcc[3]/bf.lAcc[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,8,0,4,3,8), format = "simple", caption = "ANOVA")
+
+# Post-hoc T
+dgT <- 3
+dgP <- 10
+dgM <- 4
+dgC <- 3
+dgD <- 3
+cbind(l.acc %>% 
+        group_by(Label) %>% 
+        t_test(Accuracy ~ Matching, ref.group = "Match", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
+      l.acc %>% 
+        group_by(Label) %>% 
+        cohens_d(Accuracy ~ Matching, paired = TRUE, ref.group = "Match") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+
+## Label-Matching RT
+
+```{r, collapse=TRUE}
+range(lrn$RT[lrn$Correct==1])
+
+lrn %>% 
+  filter(Correct == 1) %>% 
+  filter(RT < 200) %>% 
+  summarise(N = n())
+
+lt <- lrn %>% 
+  filter(Correct == 1) %>% 
+  group_by(SN) %>% 
+  nest() %>%
+  mutate(lbound = map(data, ~mean(.$RT)-tOff*sd(.$RT)),
+         ubound = map(data, ~mean(.$RT)+tOff*sd(.$RT))) %>%
+  unnest(c(lbound, ubound)) %>%
+  unnest(data) %>%
+  mutate(Outlier = (RT < lbound)|(RT > ubound)) %>%
+  filter(Outlier == FALSE) %>%
+  ungroup() %>%
+  select(SN, Matching, Label,  RT)
+
+table(lt$Matching, lt$SN)
+table(lt$Label, lt$SN)
+range(lt$RT)
+
+tmp <- lt %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(n = n()) %>% 
+  ungroup() 
+range(tmp$n) # check min & max number of trials.
+tmp %>% 
+  unite("Cond", Matching:Label) %>% 
+  pivot_wider(id_cols = SN, names_from = Cond, values_from = n) %>% 
+  print(n = Inf) # relatively high accuracy. seems enough number of trials.
+
+( pTrmd <- 100*(sum(lrn$Correct) - nrow(lt))/sum(lrn$Correct) ) # proportion of trimmed RTs
+```
+
+Among correct responses, no trials had an RT faster than 200 ms. Correct RTs exceeding ±2.5 standard deviations from the subject-specific mean were excluded from analysis, accounting for `r round(pTrmd , digits = 2)`% of the data.
+
+```{r, collapse=TRUE}
+# RT
+l.rt <- lt %>% 
+  group_by(SN, Matching, Label) %>% 
+  summarise(RT = mean(RT)) %>% 
+  ungroup()
+
+plotMatchLabel(l.rt, "Response Time (ms)", 400, 1100, 200, TRUE, -100, 250, 50)
+
+# Descriptive
+l.rt %>% group_by(Matching, Label) %>% 
+  get_summary_stats(RT, show = c("mean", "sd")) %>% 
+  kable(digits = 0, format = "simple", caption = "Descriptive summary")
+
+# BF
+( bf.lRT <- anovaBF(RT ~ Matching*Label + SN, data = as.data.frame(l.rt), 
+                    whichRandom = "SN", iterations = nIter, progress = FALSE) )
+
+# ANOVA
+cbind(
+  anova_test(
+    data = l.rt, dv = RT, wid = SN,
+    within = c(Matching, Label),
+    effect.size = "pes") %>% 
+    get_anova_table() ,
+  tibble(BF10 = c( exp((bf.lRT[3]/bf.lRT[2])@bayesFactor$bf),
+                   exp((bf.lRT[3]/bf.lRT[1])@bayesFactor$bf),
+                   exp((bf.lRT[4]/bf.lRT[3])@bayesFactor$bf) ),
+         BF01 = c( exp((bf.lRT[2]/bf.lRT[3])@bayesFactor$bf),
+                   exp((bf.lRT[1]/bf.lRT[3])@bayesFactor$bf),
+                   exp((bf.lRT[3]/bf.lRT[4])@bayesFactor$bf) ))) %>% 
+  kable(digits = c(0,0,0,3,10,0,3,3,10), format = "simple", caption = "ANOVA")
+
+# Post-hoc T
+dgT <- 3
+dgP <- 10
+dgM <- 0
+dgC <- 0
+dgD <- 3
+cbind(l.rt %>% 
+        group_by(Label) %>% 
+        t_test(RT ~ Matching, ref.group = "Nonmatch", 
+               paired = TRUE, detailed = TRUE) %>% 
+        adjust_pvalue(method = "bonferroni") %>% 
+        add_significance("p.adj") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
+      l.rt %>% 
+        group_by(Label) %>% 
+        cohens_d(RT ~ Matching, paired = TRUE, ref.group = "Nonmatch") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test, Bonferroni Corrected")
+```
+
+
+## Label-Matching Self-Bias
+
+```{r}
+tmp <- cbind(
+  l.acc %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = Accuracy) %>%
+    mutate(Self = Match_Self - Nonmatch_Self,
+           Friend = Match_Friend - Nonmatch_Friend) %>%
+    select(SN, Self, Friend) %>%
+    mutate(bias = Self - Friend) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)),
+  l.rt %>%
+    unite("temp", c("Matching", "Label")) %>%
+    pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
+    mutate(Self = Nonmatch_Self - Match_Self,
+           Friend = Nonmatch_Friend - Match_Friend) %>%
+    select(SN, Self, Friend) %>%
+    mutate(bias = Self - Friend) %>%
+    select(SN, bias) %>% 
+    summarise(Mean = mean(bias), SD = sd(bias)))
+colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
+tmp %>% 
+  kable(digits = c(2,2,0,0), 
+        format = "simple", caption = "Self-bias @ label-color matching judgment")
+```
+
+
+
+<br>
+
+---
+
+<br>
+
+
+# Working Memory Task
+
+At the beginning of each trial, a blue and a red object appeared on the screen. Participants were required to briefly hold the colors and shapes of the objects in working memory. After a 2-second delay, a social label and a color wheel appeared along with a mouse cursor. Participants were asked to identify the shape of the object that had been presented in the color associated with the referent of the label.
+
+```{r, fig.height=2}
+ggdraw() + draw_image("fig/E2tst.png")
+```
+
+We measured the memory error (in a whole number from -179° to 180°) by calculating the angular deviation of a response from the ‘target’ shape cued by a label in each trial. As in Yin & Chen (2024), WM precision is then calculated separately for each participant and condition as the reciprocal of the standard deviation of memory errors across trials. The estimation of WM precision is based on the formula described in prior works ([Bays et al., 2009](https://jov.arvojournals.org/article.aspx?articleid=2122354)). 
+
+## Precision
+
+### Descriptive Stats
+
+```{r, collapse=TRUE}
+tst <- read.csv("data/datSPE8VCS2TST.csv") %>% 
+  mutate(SN = factor(SN),
+         Label = factor(Label, 
+                        levels = c("Self", "Friend"), 
+                        labels = c("Self", "Friend"))) %>% 
+  mutate(ErrorRad = deg2rad(Error))
+str(tst)
+length(unique(tst$SN))
+table(tst$selfColor, tst$SN)
+
+range(tst$Error)
+range(deg2rad(tst$Error))
+
+headTail(tst)
+
+# # Error는 아래 두 가지 방식으로 변인을 조합하여 재현할 수 있다.
+# tst %>% mutate(tmp1 = (RspID - TrgID) %% 360,
+#                tmp2 = ifelse(tmp1 > 180, tmp1-360, tmp1),
+#                tmp3 = 1- (Error==tmp2)) %>%
+#   summarise(sumError = sum(tmp3))
+# 
+# tst %>% mutate(tmp1 = (RspLoc - TrgLoc) %% 360,
+#                tmp2 = ifelse(tmp1 > 180, tmp1-360, tmp1),
+#                tmp3 = 1- (Error==tmp2)) %>%
+#   summarise(sumError = sum(tmp3))
+
+
+# Outlier Detection on precision
+
+F3 <- tst %>% select(Label, ErrorRad) %>% 
+  ggplot() +
+  geom_histogram(mapping = aes(x = ErrorRad, 
+                               y = after_stat(density), 
+                               fill = Label),
+                 position = 'identity', binwidth = pi/18, alpha = 0.4) +
+  geom_density(mapping = aes(x = ErrorRad, color = Label),
+               alpha = 0.5, linewidth = 0.5) +
+  scale_x_continuous(breaks = c(-pi, -pi/2, 0, pi/2, pi),
+                     label = c(expression(-pi), expression(-pi/2),
+                               0, expression(pi/2), expression(pi))) +
+  labs(x = "Memory Error (rad)", y = "Density") +
+  # facet_grid(. ~ Label) +
+  scale_fill_manual(values=c("#DC3220", "#005AB5")) +
+  scale_color_manual(values=c("#DC3220", "#005AB5")) +
+  theme_bw(base_size = 18) +
+  theme(legend.position="top",
+        legend.spacing.x = unit(0.5, 'lines'),
+        legend.margin = margin(0, 0, 0, 0),
+        legend.background = element_blank(),
+        strip.background = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+
+t1 <- tst %>% 
+  group_by(SN, Label) %>% 
+  group_modify( ~ bays_2009_error(.$ErrorRad)) %>% 
+  ungroup() %>%
+  rename(Precision = precision)
+headTail(t1)
+t1 %>% print(n = Inf)
+
+t1.g <- t1 %>%
+  Rmisc::summarySEwithin(measurevar = 'Precision', idvar = 'SN',
+                         withinvars = "Label")
+t1.w <- t1 %>%
+  pivot_wider(id_cols = SN, names_from = Label, values_from = Precision)
+
+pd <- rep(c(1.1, 1.9), 72)
+F4 <- ggplot() +
+  geom_bar(data=t1.g, aes(x = Label, y = Precision, fill = Label), alpha = .6,
+           stat="identity", width=0.7, linewidth=0.5, color="black") +
+  # geom_point(data=cbind(t1, pd), aes(x = pd, y = Precision, group = Label),
+  #            color="gray80", alpha=0.5, size=1.8) +
+  geom_segment(data=t1.w, color="black", alpha=0.3,
+               aes(x=1+.1, y=Self, xend=2-.1, yend=Friend)) +
+  geom_linerange(data=t1.g, aes(x=Label, ymin=Precision-ci, ymax=Precision+ci, group=Label),
+                 linewidth=1) +
+  # geom_point(data=t1.g, aes(x = Label, y = Precision),
+  #            size=3, color = "black", show.legend = FALSE) +
+  scale_fill_manual(values=c('#DC3220', '#005AB5'),
+                    labels=c("Self", "Friend")) +
+  labs(x = "Label", y = expression("Precision (" * rad^{-1} * ")")) +
+  coord_cartesian(ylim = c(0, 5), clip = "on") +
+  scale_y_continuous(breaks=seq(0, 5, by = 1)) +
+  theme_bw(base_size = 18) +
+  theme(legend.position= "none",
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank())
+# , position = position_nudge(x = .1, y = 0)
+
+F3 + F4 + plot_layout(nrow = 1, widths = c(1, 1))
+
+# Descriptive
+t1 %>% group_by(Label) %>% 
+  get_summary_stats(Precision, show = c("mean", "sd")) %>% 
+  kable(digits = 2, format = "simple", caption = "Descriptive summary")
+
+```
+
+### Bayes Factor 
+
+```{r, class.source = 'fold-show'}
+bf1 <- ttestBF(t1.w$Self - t1.w$Friend,
+               rscale = 0.707, # = 'medium',
+               nullInterval = c(0, Inf))
+1/bf1[1]
+```
+
+```{r, collapse=TRUE, fig.height=3}
+plot(bayestestR::bayesfactor_models(bf1[1])) + 
+  scale_fill_pizza() +
+  scale_fill_manual(values=c('#E69F00', '#56B4E9')) +
+  theme(text = element_text(size = 18))
+```
+
+### T-Test
+
+```{r}
+dgT <- 3
+dgP <- 3
+dgM <- 0
+dgC <- 3
+dgD <- 3
+cbind(t1 %>% 
+        t_test(Precision ~ Label, ref.group = "Self", 
+               paired = TRUE, detailed = TRUE) %>% 
+        add_significance("p") %>% 
+        unite("Comparison", group1:group2, sep = " > ") %>% 
+        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
+                                 round(conf.high, digits = dgC), "]")) %>% 
+        rename('T' = statistic, M = estimate) %>% 
+        select(Comparison, 'T', df, p, p.signif, M, '95% CI'), 
+      t1 %>% 
+        cohens_d(Precision ~ Label, paired = TRUE, ref.group = "Self") %>% 
+        select("effsize", "magnitude") %>% 
+        rename("Cohen's d" = effsize)) %>% 
+  kable(digits = c(0,dgT,0,dgP,0,dgM,0,dgD,0), 
+        format = "simple", caption = "T-Test")
+```
+
+<br>
+
+---
+
+<br>
+
+# Correlation
+
+Self-bias were computed separately for label-color matching RTs in the associative learning task and for precision in the working memory task. A Pearson correlation was then calculated between the two self-bias measures.
+
+```{r, collapse=TRUE}
+lrn.matching <- l.rt %>% 
+  unite("temp", c("Matching", "Label")) %>% 
+  pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
+  mutate(Self = Nonmatch_Self - Match_Self,
+         Friend = Nonmatch_Friend - Match_Friend) %>%
+  select(SN, Self, Friend) %>% 
+  mutate(lrnLabel = Self - Friend) %>% 
+  select(SN, lrnLabel)
+
+tst.precision <- t1 %>% 
+  pivot_wider(id_cols = SN, names_from = Label, values_from = Precision) %>% 
+  mutate(wmShape = Self - Friend) %>% 
+  select(SN, wmShape)
+
+spe.effects <- full_join(
+  lrn.matching, tst.precision, by = 'SN') 
+spe.effects %>% print(n = Inf)
+
+headTail(spe.effects)
+
+# https://cran.r-project.org/web/packages/BayesFactor/vignettes/manual.html#lincor
+cor.test(x = spe.effects$lrnLabel, y = spe.effects$wmShape)
+
+spe.effects %>% cor_test(lrnLabel, wmShape) %>% 
+  mutate("95% CI" = paste0("[", round(conf.low, digits = 3), ", ",
+                                 round(conf.high, digits = 3), "]")) %>%
+  select(var1, var2, method, cor, '95% CI', statistic, p) %>% 
+  rename(Variable1 = var1, Variable2 = var2, r = cor) %>% 
+  kable(digits = 3, format = "simple", align = "llrrrrr", caption = "Correlation")
+```
+
+
+```{r, class.source = 'fold-show'}
+bf2 <- correlationBF(x = spe.effects$lrnLabel, 
+                    y = spe.effects$wmShape, rscale = "medium")
+bf2
+```
+
+
+```{r, collapse=TRUE}
+bf2 %>% bayestestR::describe_posterior()
+
+C1 <- ggplot(spe.effects, aes(x=lrnLabel, y=wmShape)) +
+  geom_point(size = 3, alpha = 0.5) +
+  geom_smooth(method=lm, formula = y ~ x) +
+  labs(x = expression(paste("Self-Bias" [" AL Task"])), 
+       y = expression(paste("Self-Bias" [" WM Task"]))) +
+  theme_bw(base_size = 18) +
+  theme(panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        aspect.ratio = 1) +
+  annotate(geom = "text", x = 50, y = -2.2, hjust = 0, size = 5,
+           label = "paste(italic(r), \" = .05, \", italic(p), \" = .69\")", 
+           parse = TRUE)
+C2 <- plot(bayestestR::bayesfactor_models(bf2)) + 
+  scale_fill_pizza() +
+  scale_fill_manual(values=c('#E69F00', '#56B4E9')) +
+  theme(text = element_text(size = 18))
+
+C1 + C2 + plot_layout(nrow = 1, widths = c(1.5, 1))
+```
+
+
+
+
+---
+
+
+# Session Info
+
+```{r session_info, collapse=TRUE}
+sessionInfo()
+```
