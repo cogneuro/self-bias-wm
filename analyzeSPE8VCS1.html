@@ -11,7 +11,7 @@
 
 <meta name="author" content="Woojeong Lee &amp; Do-Joon Yi" />
 
-<meta name="date" content="2025-09-15" />
+<meta name="date" content="2025-09-23" />
 
 <title>Experiment 1</title>
 
@@ -456,7 +456,7 @@ div.tocify {
 <h3 class="subtitle">Self-Priority Effects on Nonspatial Working
 Memory</h3>
 <h4 class="author">Woojeong Lee &amp; Do-Joon Yi</h4>
-<h4 class="date">2025-09-15</h4>
+<h4 class="date">2025-09-23</h4>
 
 </div>
 
@@ -705,9 +705,6 @@ pre code, pre, code {
 <span id="cb2-218"><a href="#cb2-218" tabindex="-1"></a>  </span>
 <span id="cb2-219"><a href="#cb2-219" tabindex="-1"></a>  F1 <span class="sc">+</span> F2 <span class="sc">+</span> <span class="fu">plot_layout</span>(<span class="at">nrow =</span> <span class="dv">1</span>, <span class="at">widths =</span> <span class="fu">c</span>(<span class="dv">2</span>, <span class="fl">1.2</span>))</span>
 <span id="cb2-220"><a href="#cb2-220" tabindex="-1"></a>}</span></code></pre></div>
-<p><br><br></p>
-<hr />
-<p><br><br></p>
 <div id="power-analysis" class="section level1" number="1">
 <h1><span class="header-section-number">1</span> Power Analysis</h1>
 <p>We determined the sample size using a simulation-based power analysis
@@ -1000,8 +997,9 @@ package (Lakens &amp; Caldwell, 2021).</p>
 ## 3 Order:Label Desired Power Not Reached 50           5.44            90</code></pre>
 <p>The simulation results indicated that a minimum of 20 participants
 would be sufficient to detect the expected effect. To account for
-potential differences between our nonspatial WM task and Yin et al’s
-original task, we recruited 50% more participants, resulting in a total
+potential differences between our nonspatial WM task and <a
+href="https://doi.org/10.1177/0956797618818483">Yin et al’s original
+task</a>, we recruited 50% more participants, resulting in a total
 sample size of 30.</p>
 <p><br><br></p>
 <hr />
@@ -1017,7 +1015,9 @@ Tasks</h1>
 evenly sampled from the Validated Circular Shape (VCS) space (<a
 href="https://psycnet.apa.org/record/2019-58626-001">Li et al.,
 2020</a>), designed to approximate the subjective similarity structure
-of the octagonal layout employed by Yin et al. (2019).</p></li>
+of the octagonal layout employed by <a
+href="https://doi.org/10.1177/0956797618818483">Yin et
+al. (2019)</a>.</p></li>
 <li><p>The figure shows two successive example trials in the
 <u>associative learning task</u>. Each trial presented a red or blue
 shape with a superimposed social label—“당신” (the Korean word for
@@ -1125,7 +1125,7 @@ Label-Matching</h2>
 <span id="cb7-44"><a href="#cb7-44" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">Outlier =</span> <span class="fu">quantile</span>(M, <span class="at">prob =</span> .<span class="dv">25</span>) <span class="sc">-</span> <span class="fl">1.5</span> <span class="sc">*</span> <span class="fu">IQR</span>(M),</span>
 <span id="cb7-45"><a href="#cb7-45" tabindex="-1"></a>            <span class="at">Extreme =</span> <span class="fu">quantile</span>(M, <span class="at">prob =</span> .<span class="dv">25</span>) <span class="sc">-</span> <span class="dv">3</span> <span class="sc">*</span> <span class="fu">IQR</span>(M)) </span>
 <span id="cb7-46"><a href="#cb7-46" tabindex="-1"></a>Fo1 <span class="ot">&lt;-</span> s.gc <span class="sc">%&gt;%</span> </span>
-<span id="cb7-47"><a href="#cb7-47" tabindex="-1"></a>  <span class="fu">single_raincloud_plot</span>(.<span class="sc">$</span>M, <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">0.1</span>, <span class="st">&quot;Label-Color Matching Accuracy&quot;</span>) <span class="sc">+</span> </span>
+<span id="cb7-47"><a href="#cb7-47" tabindex="-1"></a>  <span class="fu">single_raincloud_plot</span>(.<span class="sc">$</span>M, <span class="fl">0.5</span>, <span class="dv">1</span>, <span class="fl">0.1</span>, <span class="st">&quot;Label-Matching Accuracy&quot;</span>) <span class="sc">+</span> </span>
 <span id="cb7-48"><a href="#cb7-48" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept=</span>thresholds<span class="sc">$</span>Outlier, <span class="at">linetype=</span><span class="st">&quot;dotted&quot;</span>) <span class="sc">+</span></span>
 <span id="cb7-49"><a href="#cb7-49" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept=</span>thresholds<span class="sc">$</span>Extreme, <span class="at">linetype=</span><span class="st">&#39;dashed&#39;</span>, <span class="at">color=</span><span class="st">&#39;red&#39;</span>, <span class="at">linewidth=</span><span class="fl">0.5</span>)</span>
 <span id="cb7-50"><a href="#cb7-50" tabindex="-1"></a></span>
@@ -1166,7 +1166,7 @@ Label-Matching</h2>
 <span id="cb7-85"><a href="#cb7-85" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">Outlier =</span> <span class="fu">quantile</span>(M, <span class="at">prob =</span> .<span class="dv">75</span>) <span class="sc">+</span> <span class="fl">1.5</span> <span class="sc">*</span> <span class="fu">IQR</span>(M),</span>
 <span id="cb7-86"><a href="#cb7-86" tabindex="-1"></a>            <span class="at">Extreme =</span> <span class="fu">quantile</span>(M, <span class="at">prob =</span> .<span class="dv">75</span>) <span class="sc">+</span> <span class="dv">3</span> <span class="sc">*</span> <span class="fu">IQR</span>(M)) </span>
 <span id="cb7-87"><a href="#cb7-87" tabindex="-1"></a>Fo2 <span class="ot">&lt;-</span> s.gt <span class="sc">%&gt;%</span> </span>
-<span id="cb7-88"><a href="#cb7-88" tabindex="-1"></a>  <span class="fu">single_raincloud_plot</span>(.<span class="sc">$</span>M, <span class="dv">200</span>, <span class="dv">1400</span>, <span class="dv">200</span>, <span class="st">&quot;Label-Color Matching RT (ms)&quot;</span>) <span class="sc">+</span> </span>
+<span id="cb7-88"><a href="#cb7-88" tabindex="-1"></a>  <span class="fu">single_raincloud_plot</span>(.<span class="sc">$</span>M, <span class="dv">200</span>, <span class="dv">1400</span>, <span class="dv">200</span>, <span class="st">&quot;Label-Matching RT (ms)&quot;</span>) <span class="sc">+</span> </span>
 <span id="cb7-89"><a href="#cb7-89" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept=</span>thresholds<span class="sc">$</span>Outlier, <span class="at">linetype=</span><span class="st">&quot;dotted&quot;</span>) <span class="sc">+</span></span>
 <span id="cb7-90"><a href="#cb7-90" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept=</span>thresholds<span class="sc">$</span>Extreme, <span class="at">linetype=</span><span class="st">&#39;dashed&#39;</span>, <span class="at">color=</span><span class="st">&#39;red&#39;</span>, <span class="at">linewidth=</span><span class="fl">0.5</span>)</span>
 <span id="cb7-91"><a href="#cb7-91" tabindex="-1"></a></span>
@@ -1382,10 +1382,10 @@ RT.</p>
 <span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a><span class="do">## 2 removed &amp; 28 left</span></span>
 <span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(d<span class="sc">$</span>SN))</span>
 <span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="do">## [1] 28</span></span></code></pre></div>
-<p>In summary, one subject with low label-color matching accuracy in the
-associative learning task and another with markedly slow label-color
-matching RT in the working memory task were classified as outliers and
-excluded from further analyses.</p>
+<p>In summary, one subject with low label-matching accuracy in the
+associative learning task and another with markedly slow label-matching
+RT in the working memory task were classified as outliers and excluded
+from further analyses.</p>
 <p><br><br></p>
 <hr />
 <p><br><br></p>
@@ -1397,15 +1397,15 @@ Task</h1>
 <div id="label-matching-accuracy" class="section level2" number="4.1">
 <h2><span class="header-section-number">4.1</span> Label-Matching
 Accuracy</h2>
-<p>아래 왼편 플롯의 Self vs. Stranger는 Label을 가리킨다. Nonmatch
-조건의 시행에서는 Label와 Color가 지칭하는 사람이 다르므로 Label을
-기준으로 시행을 구분하였다. <a
+<p>In the left plot, Self vs. Stranger refers to the label. In the
+nonmatch trials, the label and the color referred to different persons;
+thus, the trials were classified based on the label. Following <a
 href="https://link.springer.com/article/10.3758/s13414-017-1307-8">Wade
-&amp; Vickery (2017)</a>는 label의 처리속도를 통제하기 위해 각 label의
-match와 nonmatch 응답을 비교하여 congruency benefit을 계산하였다. 오른쪽
-플롯이 바로 그 값이다.</p>
-<p>우리는 오른쪽 플롯에 제시된 Self 조건과 Stranger 조건의 차이를
-계산하여 자기편향(self-bias)으로 정의할 것이다.</p>
+&amp; Vickery (2017)</a>, congruency benefit was computed by comparing
+responses to match versus nonmatch trials for each label, thereby
+controlling for label processing speed. The right plot displays these
+values. We defined self-bias as the difference between the Self and
+Stranger conditions in the right plot.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">length</span>(<span class="fu">unique</span>(s<span class="sc">$</span>SN))</span>
 <span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="do">## [1] 28</span></span>
 <span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="fu">table</span>(s<span class="sc">$</span>Label, s<span class="sc">$</span>SN)</span>
@@ -1663,8 +1663,8 @@ match와 nonmatch 응답을 비교하여 congruency benefit을 계산하였다. 
 <div id="label-matching-rt" class="section level2" number="4.2">
 <h2><span class="header-section-number">4.2</span> Label-Matching
 RT</h2>
-<p>Accuracy에서 설명한 바와 같다. 우리는 오른쪽 플롯에서 Self 조건과
-Stranger 조건의 차이를 계산하여 Self-bias로 정의할 것이다.</p>
+<p>As with accuracy, we defined self-bias as the difference between the
+Self and Stranger conditions in the right plot.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">range</span>(s<span class="sc">$</span>RT[s<span class="sc">$</span>Correct<span class="sc">==</span><span class="dv">1</span>])</span>
 <span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="do">## [1]  327.1 4712.6</span></span>
 <span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a></span>
@@ -1950,8 +1950,10 @@ Stranger 조건의 차이를 계산하여 Self-bias로 정의할 것이다.</p>
 <div id="label-matching-self-bias" class="section level2" number="4.3">
 <h2><span class="header-section-number">4.3</span> Label-Matching
 Self-Bias</h2>
-<p>앞에서 설명한 바와 같이 Accuracy와 RT의 congurency benefit (Wade
-&amp; Vickery, 2017)에서 자기편향을 계산하였다.</p>
+<p>As described above, self-bias was calculated from the congruency
+benefits of accuracy and RT <a
+href="https://link.springer.com/article/10.3758/s13414-017-1307-8">(Wade
+&amp; Vickery, 2017)</a>.</p>
 <div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
 <span id="cb19-2"><a href="#cb19-2" tabindex="-1"></a>  s.acc <span class="sc">%&gt;%</span></span>
 <span id="cb19-3"><a href="#cb19-3" tabindex="-1"></a>    <span class="fu">unite</span>(<span class="st">&quot;temp&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;Matching&quot;</span>, <span class="st">&quot;Label&quot;</span>)) <span class="sc">%&gt;%</span></span>
@@ -1974,9 +1976,9 @@ Self-Bias</h2>
 <span id="cb19-20"><a href="#cb19-20" tabindex="-1"></a><span class="fu">colnames</span>(tmp) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">&quot;M_accuracy&quot;</span>, <span class="st">&quot;SD_accuracy&quot;</span>, <span class="st">&quot;M_rt&quot;</span>, <span class="st">&quot;SD_rt&quot;</span>)</span>
 <span id="cb19-21"><a href="#cb19-21" tabindex="-1"></a>tmp <span class="sc">%&gt;%</span> </span>
 <span id="cb19-22"><a href="#cb19-22" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="fu">c</span>(<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">0</span>,<span class="dv">0</span>), </span>
-<span id="cb19-23"><a href="#cb19-23" tabindex="-1"></a>        <span class="at">format =</span> <span class="st">&quot;simple&quot;</span>, <span class="at">caption =</span> <span class="st">&quot;Self-bias @ label-color matching judgment&quot;</span>)</span></code></pre></div>
+<span id="cb19-23"><a href="#cb19-23" tabindex="-1"></a>        <span class="at">format =</span> <span class="st">&quot;simple&quot;</span>, <span class="at">caption =</span> <span class="st">&quot;Self-bias @ label-matching judgment&quot;</span>)</span></code></pre></div>
 <table>
-<caption>Self-bias @ label-color matching judgment</caption>
+<caption>Self-bias @ label-matching judgment</caption>
 <thead>
 <tr class="header">
 <th align="right">M_accuracy</th>
@@ -2005,9 +2007,9 @@ Task</h1>
 <div id="dms-accuracy-rt" class="section level2" number="5.1">
 <h2><span class="header-section-number">5.1</span> DMS Accuracy &amp;
 RT</h2>
-<p>Probe가 두 sample 중 하나와 같은 시행(Same)과 두 sample 중 어느
-것과도 같지 않은 시행(Different)으로 나누어 delayed Match-to-Sample
-judgment를 분석하였다.</p>
+<p>The delayed match-to-sample judgment was analyzed by dividing the
+trials into Same trials, where the probe matched one of the two samples,
+and Different trials, where the probe matched neither sample.</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a>dc <span class="ot">&lt;-</span> d <span class="sc">%&gt;%</span> <span class="fu">filter</span>(Screen <span class="sc">==</span> <span class="st">&quot;probe&quot;</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb20-2"><a href="#cb20-2" tabindex="-1"></a>  <span class="fu">droplevels</span>() <span class="sc">%&gt;%</span></span>
 <span id="cb20-3"><a href="#cb20-3" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">!</span><span class="fu">c</span>(Screen, Matching, Label, Identity, Response, Order)) </span>
@@ -2070,8 +2072,9 @@ Accuracy</h2>
 trials</strong>, referring to trials where the probe matched one of the
 two sample shapes in working memory (<a
 href="https://doi.org/10.1177/0956797618818483">Yin et al.</a>).</p>
-<p>오른쪽 플롯에서 Y축은 self-bias를 의미한다. First 조건과 Second
-조건의 평균을 WM 과제의 self-bias로 정의할 것이다.</p>
+<p>In the right plot, the Y-axis represents self-bias. The average of
+the First and Second conditions was defined as self-bias in the WM
+task.</p>
 <div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" tabindex="-1"></a>d.same <span class="ot">&lt;-</span> d <span class="sc">%&gt;%</span> </span>
 <span id="cb21-2"><a href="#cb21-2" tabindex="-1"></a>  <span class="fu">filter</span>(Change <span class="sc">==</span> <span class="st">&quot;Same&quot;</span>, Screen <span class="sc">==</span> <span class="st">&quot;probe&quot;</span>) <span class="sc">%&gt;%</span></span>
 <span id="cb21-3"><a href="#cb21-3" tabindex="-1"></a>  <span class="fu">droplevels</span>() <span class="sc">%&gt;%</span></span>
@@ -2629,8 +2632,8 @@ RT</h2>
 <div id="shape-matching-self-bias" class="section level2" number="5.4">
 <h2><span class="header-section-number">5.4</span> Shape-Matching
 Self-bias</h2>
-<p>First 조건과 Second 조건의 결과를 평균하여 자기편향으로
-정의하였다.</p>
+<p>Self-bias was defined as the average of the First and Second
+conditions.</p>
 <div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" tabindex="-1"></a>tmp <span class="ot">&lt;-</span> <span class="fu">cbind</span>(</span>
 <span id="cb29-2"><a href="#cb29-2" tabindex="-1"></a>  dsa <span class="sc">%&gt;%</span></span>
 <span id="cb29-3"><a href="#cb29-3" tabindex="-1"></a>    <span class="fu">group_by</span>(SN, Identity) <span class="sc">%&gt;%</span></span>
@@ -2678,7 +2681,8 @@ Self-bias</h2>
 <div id="label-matching-accuracy-1" class="section level2" number="5.5">
 <h2><span class="header-section-number">5.5</span> Label-Matching
 Accuracy</h2>
-<p>Associative learning task를 분석한 방법을 그대로 적용하였다.</p>
+<p>The same analytic procedure as in the associative learning task was
+applied.</p>
 <div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a>d.spe <span class="ot">&lt;-</span> d <span class="sc">%&gt;%</span> </span>
 <span id="cb30-2"><a href="#cb30-2" tabindex="-1"></a>  <span class="fu">filter</span>(Screen <span class="sc">==</span> <span class="st">&quot;label&quot;</span>) <span class="sc">%&gt;%</span> <span class="co"># label은 모두 Same</span></span>
 <span id="cb30-3"><a href="#cb30-3" tabindex="-1"></a>  <span class="fu">droplevels</span>() <span class="sc">%&gt;%</span> </span>
@@ -3282,9 +3286,10 @@ Self-bias</h2>
 </div>
 <div id="correlation" class="section level1" number="6">
 <h1><span class="header-section-number">6</span> Correlation</h1>
-<p>Associative learning task의 label-matching RT, Working memory task의
-shape-matching RT와 label-matching RT에서 계산한 self-bias의 상관을
-계산하였다.</p>
+<p>We computed the correlations among self-bias scores derived from
+label-matching RTs in the associative learning task, and from
+shape-matching RTs and label-matching RTs in the working memory
+task.</p>
 <div class="sourceCode" id="cb39"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" tabindex="-1"></a><span class="co"># Associative Learning Task: Label-Matching</span></span>
 <span id="cb39-2"><a href="#cb39-2" tabindex="-1"></a>asc.effect <span class="ot">&lt;-</span> s.rt <span class="sc">%&gt;%</span></span>
 <span id="cb39-3"><a href="#cb39-3" tabindex="-1"></a>  <span class="fu">unite</span>(<span class="st">&quot;temp&quot;</span>, <span class="fu">c</span>(<span class="st">&quot;Matching&quot;</span>, <span class="st">&quot;Label&quot;</span>)) <span class="sc">%&gt;%</span></span>
@@ -3322,10 +3327,10 @@ shape-matching RT와 label-matching RT에서 계산한 self-bias의 상관을
 <span id="cb39-35"><a href="#cb39-35" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>SN) <span class="sc">%&gt;%</span> </span>
 <span id="cb39-36"><a href="#cb39-36" tabindex="-1"></a>  <span class="fu">pairs.panels</span>(<span class="at">method =</span> <span class="st">&quot;pearson&quot;</span>, <span class="at">lm =</span> <span class="cn">TRUE</span>, <span class="at">stars =</span> <span class="cn">TRUE</span>)</span></code></pre></div>
 <p><img src="analyzeSPE8VCS1_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
-<p><strong>lrnLabel</strong>: Label-matching self-bias in the
-associative learning task <br> <strong>wmShape</strong>: Shape-matching
+<p><strong>lrnLabel</strong>: label-matching self-bias in the
+associative learning task <br> <strong>wmShape</strong>: shape-matching
 self-bias in the working memory task <br> <strong>wmLabel</strong>:
-Label-matching self-bias in the working memory task</p>
+label-matching self-bias in the working memory task</p>
 <div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a>cor.mat <span class="ot">&lt;-</span> self.bias  <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>SN) <span class="sc">%&gt;%</span> <span class="fu">cor_mat</span>(<span class="at">method =</span> <span class="st">&quot;pearson&quot;</span>)</span>
 <span id="cb40-2"><a href="#cb40-2" tabindex="-1"></a>ctb <span class="ot">&lt;-</span> cor.mat <span class="sc">%&gt;%</span> <span class="fu">cor_gather</span>() <span class="sc">%&gt;%</span> <span class="fu">slice</span>(<span class="fu">c</span>(<span class="dv">4</span>,<span class="dv">7</span>,<span class="dv">8</span>)) <span class="sc">%&gt;%</span> <span class="fu">rename</span>(<span class="at">r =</span> cor)</span>
 <span id="cb40-3"><a href="#cb40-3" tabindex="-1"></a>ctb <span class="ot">&lt;-</span> ctb <span class="sc">%&gt;%</span></span>
@@ -3425,7 +3430,7 @@ Label-matching self-bias in the working memory task</p>
 <div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span>
 <span id="cb41-2"><a href="#cb41-2" tabindex="-1"></a><span class="do">## R version 4.5.1 (2025-06-13)</span></span>
 <span id="cb41-3"><a href="#cb41-3" tabindex="-1"></a><span class="do">## Platform: aarch64-apple-darwin20</span></span>
-<span id="cb41-4"><a href="#cb41-4" tabindex="-1"></a><span class="do">## Running under: macOS Sequoia 15.6.1</span></span>
+<span id="cb41-4"><a href="#cb41-4" tabindex="-1"></a><span class="do">## Running under: macOS Sequoia 15.7</span></span>
 <span id="cb41-5"><a href="#cb41-5" tabindex="-1"></a><span class="do">## </span></span>
 <span id="cb41-6"><a href="#cb41-6" tabindex="-1"></a><span class="do">## Matrix products: default</span></span>
 <span id="cb41-7"><a href="#cb41-7" tabindex="-1"></a><span class="do">## BLAS:   /Library/Frameworks/R.framework/Versions/4.5-arm64/Resources/lib/libRblas.0.dylib </span></span>
@@ -3472,7 +3477,7 @@ Label-matching self-bias in the working memory task</p>
 <span id="cb41-48"><a href="#cb41-48" tabindex="-1"></a><span class="do">## [55] magick_2.9.0        Rmisc_1.5.1         jquerylib_0.1.4    </span></span>
 <span id="cb41-49"><a href="#cb41-49" tabindex="-1"></a><span class="do">## [58] glue_1.8.0          nloptr_2.2.1        stringi_1.8.7      </span></span>
 <span id="cb41-50"><a href="#cb41-50" tabindex="-1"></a><span class="do">## [61] gtable_0.3.6        lme4_1.1-37         lmerTest_3.1-3     </span></span>
-<span id="cb41-51"><a href="#cb41-51" tabindex="-1"></a><span class="do">## [64] pillar_1.11.0       htmltools_0.5.8.1   R6_2.6.1           </span></span>
+<span id="cb41-51"><a href="#cb41-51" tabindex="-1"></a><span class="do">## [64] pillar_1.11.1       htmltools_0.5.8.1   R6_2.6.1           </span></span>
 <span id="cb41-52"><a href="#cb41-52" tabindex="-1"></a><span class="do">## [67] Rdpack_2.6.4        evaluate_1.0.5      lattice_0.22-7     </span></span>
 <span id="cb41-53"><a href="#cb41-53" tabindex="-1"></a><span class="do">## [70] rbibutils_2.3       backports_1.5.0     broom_1.0.10       </span></span>
 <span id="cb41-54"><a href="#cb41-54" tabindex="-1"></a><span class="do">## [73] bslib_0.9.0         MatrixModels_0.5-4  Rcpp_1.1.0         </span></span>

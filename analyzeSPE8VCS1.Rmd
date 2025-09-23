@@ -263,13 +263,6 @@ plotOrderIdentity <- function(df, ylabel, ymin, ymax, yby,
 ```
 
 
-<br><br>
-
----
-
-<br><br>
-
-
 # Power Analysis
 
 We determined the sample size using a simulation-based power analysis on the [dataset](https://osf.io/9ua8f) from [Yin et al. (2019, Experiment 2)](https://doi.org/10.1177/0956797618818483), who employed a 2 (order: first, second) × 3 (label: self, friend, stranger) within-subjects design. We excluded trials from the friend condition to match our 2 (order: first, second) × 2 (label: self, stranger) design. Based on the means, standard deviations, and inter-condition correlations of response times (RTs) from the reduced dataset, we estimated the sample size required to achieve 90% power to detect a main effect of label in a 2 × 2 repeated-measures ANOVA using the [Superpower](https://cran.r-project.org/web/packages/Superpower/vignettes/intro_to_superpower.html) package (Lakens & Caldwell, 2021).
@@ -433,7 +426,7 @@ pw2 <- plot_power(dx2,
                   verbose = TRUE)
 ```
 
-The simulation results indicated that a minimum of 20 participants would be sufficient to detect the expected effect. To account for potential differences between our nonspatial WM task and Yin et al’s original task, we recruited 50% more participants, resulting in a total sample size of 30.
+The simulation results indicated that a minimum of 20 participants would be sufficient to detect the expected effect. To account for potential differences between our nonspatial WM task and [Yin et al’s original task](https://doi.org/10.1177/0956797618818483), we recruited 50% more participants, resulting in a total sample size of 30.
 
 
 <br><br>
@@ -448,7 +441,7 @@ The simulation results indicated that a minimum of 20 participants would be suff
 
 Subjects completed an <u>associative learning task</u> followed by a <u>working memory task</u>. 
 
-(A) The eight abstract shapes used in the tasks. These shapes were evenly sampled from the Validated Circular Shape (VCS) space ([Li et al., 2020](https://psycnet.apa.org/record/2019-58626-001)), designed to approximate the subjective similarity structure of the octagonal layout employed by Yin et al. (2019). 
+(A) The eight abstract shapes used in the tasks. These shapes were evenly sampled from the Validated Circular Shape (VCS) space ([Li et al., 2020](https://psycnet.apa.org/record/2019-58626-001)), designed to approximate the subjective similarity structure of the octagonal layout employed by [Yin et al. (2019)](https://doi.org/10.1177/0956797618818483). 
 (B) The figure shows two successive example trials in the <u>associative learning task</u>. Each trial presented a red or blue shape with a superimposed social label—“당신” (the Korean word for “you”) or “타인” (the Korean word for “stranger”). Subjects were asked to judge whether the shape color matched the color associated with the referent of the label (self or other) prior to the experiment. The shape’s form was irrelevant to the task and was included solely to familiarize subjects with the shapes used in the later working memory task. Subjects responded using their right hand by pressing a button corresponding to either “match” or “nonmatch.” We refer to this as the **label-matching judgment**.
 
 (C) Each trial of the <u>working memory task</u> presented a red shape, a blue shape, and a checkerboard pattern in sequence. In half of the trials, the red shape appeared first, and the blue shape appeared first in the other half. Subjects were required to briefly retain the samples' colors and shapes in working memory. After a 1-second delay, a gray probe shape appeared on the screen, and subjects were asked to make a speeded and accurate judgment as to whether the probe matched either of the two previously presented samples. In 25% of the trials, the probe matched the first sample; in another 25%, it matched the second sample; and in the remaining 50%, it was a novel shape randomly drawn from the other six items in the shape set. Subjects responded using their left hand by pressing a button labeled “old” or “new.” We refer to this as the **shape-matching response**. On trials where the probe matched one of the two samples, a social label was superimposed on the probe immediately after the shape-matching response. Subjects were then asked to judge whether the color associated with the probed sample matched the color previously associated with the referent of the label (self or other). They responded using their right hand by pressing a button labeled “match” or “nonmatch.” We refer to this as another **label-matching response**.
@@ -500,7 +493,7 @@ thresholds <- s.gc %>%
   summarise(Outlier = quantile(M, prob = .25) - 1.5 * IQR(M),
             Extreme = quantile(M, prob = .25) - 3 * IQR(M)) 
 Fo1 <- s.gc %>% 
-  single_raincloud_plot(.$M, 0.5, 1, 0.1, "Label-Color Matching Accuracy") + 
+  single_raincloud_plot(.$M, 0.5, 1, 0.1, "Label-Matching Accuracy") + 
   geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
   geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
 
@@ -535,7 +528,7 @@ thresholds <- s.gt %>%
   summarise(Outlier = quantile(M, prob = .75) + 1.5 * IQR(M),
             Extreme = quantile(M, prob = .75) + 3 * IQR(M)) 
 Fo2 <- s.gt %>% 
-  single_raincloud_plot(.$M, 200, 1400, 200, "Label-Color Matching RT (ms)") + 
+  single_raincloud_plot(.$M, 200, 1400, 200, "Label-Matching RT (ms)") + 
   geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
   geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
 
@@ -703,7 +696,7 @@ d <- rm_subject(d, excluded)
 length(unique(d$SN))
 ```
 
-In summary, one subject with low label-color matching accuracy in the associative learning task and another with markedly slow label-color matching RT in the working memory task were classified as outliers and excluded from further analyses.
+In summary, one subject with low label-matching accuracy in the associative learning task and another with markedly slow label-matching RT in the working memory task were classified as outliers and excluded from further analyses.
 
 
 <br><br>
@@ -718,9 +711,8 @@ In summary, one subject with low label-color matching accuracy in the associativ
 
 ## Label-Matching Accuracy
 
-아래 왼편 플롯의 Self vs. Stranger는 Label을 가리킨다. Nonmatch 조건의 시행에서는 Label와 Color가 지칭하는 사람이 다르므로 Label을 기준으로 시행을 구분하였다. [Wade & Vickery (2017)](https://link.springer.com/article/10.3758/s13414-017-1307-8)는 label의 처리속도를 통제하기 위해 각 label의 match와 nonmatch 응답을 비교하여 congruency benefit을 계산하였다. 오른쪽 플롯이 바로 그 값이다. 
-
-우리는 오른쪽 플롯에 제시된 Self 조건과 Stranger 조건의 차이를 계산하여 자기편향(self-bias)으로 정의할 것이다. 
+In the left plot, Self vs. Stranger refers to the label. In the nonmatch trials, the label and the color referred to different persons; thus, the trials were classified based on the label. Following [Wade & Vickery (2017)](https://link.springer.com/article/10.3758/s13414-017-1307-8), congruency benefit was computed by comparing responses to match versus nonmatch trials for each label, thereby controlling for label processing speed. The right plot displays these values.
+We defined self-bias as the difference between the Self and Stranger conditions in the right plot.
 
 ```{r LrnAcc, collapse=TRUE}
 length(unique(s$SN))
@@ -792,7 +784,7 @@ cbind(s.acc %>%
 
 ## Label-Matching RT
 
-Accuracy에서 설명한 바와 같다. 우리는 오른쪽 플롯에서 Self 조건과 Stranger 조건의 차이를 계산하여 Self-bias로 정의할 것이다. 
+As with accuracy, we defined self-bias as the difference between the Self and Stranger conditions in the right plot.
 
 ```{r LrnRT, collapse=TRUE}
 range(s$RT[s$Correct==1])
@@ -891,7 +883,7 @@ cbind(s.rt %>%
 
 ## Label-Matching Self-Bias
 
-앞에서 설명한 바와 같이 Accuracy와 RT의 congurency benefit (Wade & Vickery, 2017)에서 자기편향을 계산하였다.
+As described above, self-bias was calculated from the congruency benefits of accuracy and RT [(Wade & Vickery, 2017)](https://link.springer.com/article/10.3758/s13414-017-1307-8).
 
 ```{r lrnBias, collapse=TRUE}
 tmp <- cbind(
@@ -916,7 +908,7 @@ tmp <- cbind(
 colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
 tmp %>% 
   kable(digits = c(2,2,0,0), 
-        format = "simple", caption = "Self-bias @ label-color matching judgment")
+        format = "simple", caption = "Self-bias @ label-matching judgment")
 ```
 
 
@@ -932,7 +924,7 @@ tmp %>%
 
 ## DMS Accuracy & RT
 
-Probe가 두 sample 중 하나와 같은 시행(Same)과 두 sample 중 어느 것과도 같지 않은 시행(Different)으로 나누어 delayed Match-to-Sample judgment를 분석하였다. 
+The delayed match-to-sample judgment was analyzed by dividing the trials into Same trials, where the probe matched one of the two samples, and Different trials, where the probe matched neither sample.
 
 ```{r DMS, collapse=TRUE}
 dc <- d %>% filter(Screen == "probe") %>%
@@ -968,7 +960,7 @@ rbind(
 
 The key dependent measure was RT on correct **shape-probe-match trials**, referring to trials where the probe matched one of the two sample shapes in working memory ([Yin et al.](https://doi.org/10.1177/0956797618818483)).
 
-오른쪽 플롯에서 Y축은 self-bias를 의미한다. First 조건과 Second 조건의 평균을 WM 과제의 self-bias로 정의할 것이다. 
+In the right plot, the Y-axis represents self-bias. The average of the First and Second conditions was defined as self-bias in the WM task.
 
 ```{r shapeAcc, collapse=TRUE}
 d.same <- d %>% 
@@ -1141,7 +1133,7 @@ cbind(dst %>%
 
 ## Shape-Matching Self-bias 
 
-First 조건과 Second 조건의 결과를 평균하여 자기편향으로 정의하였다. 
+Self-bias was defined as the average of the First and Second conditions.
 
 ```{r tstShapeBias, collapse=TRUE}
 tmp <- cbind(
@@ -1177,7 +1169,7 @@ tmp %>%
 
 ## Label-Matching Accuracy
 
-Associative learning task를 분석한 방법을 그대로 적용하였다. 
+The same analytic procedure as in the associative learning task was applied.
 
 ```{r labelAcc, collapse=TRUE}
 d.spe <- d %>% 
@@ -1388,7 +1380,7 @@ tmp %>%
 
 # Correlation
 
-Associative learning task의 label-matching RT, Working memory task의 shape-matching RT와 label-matching RT에서 계산한 self-bias의 상관을 계산하였다. 
+We computed the correlations among self-bias scores derived from label-matching RTs in the associative learning task, and from shape-matching RTs and label-matching RTs in the working memory task.
 
 ```{r, collapse=TRUE, eval=TRUE, fig.height=6}
 # Associative Learning Task: Label-Matching
@@ -1429,9 +1421,9 @@ self.bias %>%
   pairs.panels(method = "pearson", lm = TRUE, stars = TRUE)
 ```
 
-**lrnLabel**: Label-matching self-bias in the associative learning task <br>
-**wmShape**: Shape-matching self-bias in the working memory task <br>
-**wmLabel**: Label-matching self-bias in the working memory task
+**lrnLabel**: label-matching self-bias in the associative learning task <br>
+**wmShape**: shape-matching self-bias in the working memory task <br>
+**wmLabel**: label-matching self-bias in the working memory task
 
 ```{r, collapse=TRUE, eval=TRUE}
 cor.mat <- self.bias  %>% select(-SN) %>% cor_mat(method = "pearson")
