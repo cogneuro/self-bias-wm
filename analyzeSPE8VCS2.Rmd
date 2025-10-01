@@ -36,12 +36,11 @@ if (!requireNamespace("bayestestR", quietly = TRUE)) install.packages("bayestest
 if (!requireNamespace("magick", quietly = TRUE)) install.packages("magick")
 
 set.seed(1234567) # for reproducibility
-nIter <- 1e4 # Monte Carlo simulations for error < 1%. default = 1e4
-tOff <- 2.5 # RTtrimming
-
-options("scipen" = 100) # https://rfriend.tistory.com/224
 options(dplyr.summarise.inform=FALSE) # suppress warning in regards to regrouping 
 options(knitr.kable.NA = '')
+options("scipen" = 100) # https://rfriend.tistory.com/224
+nIter <- 1e4 # Monte Carlo simulations for error < 1%. default = 1e4
+tOff <- 2.5 # RTtrimming
 klippy::klippy()
 
 deg2rad <- function(deg){deg * pi / 180}
@@ -50,8 +49,6 @@ deg2rad <- function(deg){deg * pi / 180}
 single_raincloud_plot <- function(df, Y, xMin, xMax, xBy, xLab){
   df %>% ggplot(aes(x = 1, y = Y)) +
     geom_violinhalf(flip = c(1,3), width = 0.5, color = "grey70", fill = "gray70") +
-    # geom_half_violin(aes(y = Y), side = "r", 
-    #                  color = "grey70", fill = "grey70") +
     geom_point(aes(0.8, Y), size = 1.5,
                color = "grey50", fill = "grey50", alpha = .5,
                position = position_jitter(width = 0.15, height = 0)) +
@@ -70,7 +67,7 @@ single_raincloud_plot <- function(df, Y, xMin, xMax, xBy, xLab){
 
 ## Plot for results
 plotMatchLabel <- function(df, ylabel, ymin, ymax, yby, 
-                           isRT, ymin2, ymax2, yby2, flo = 0.1) {
+                           OminusS, ymin2, ymax2, yby2) {
   names(df)[ncol(df)] <- "DV" # assuming DV on the last column
   
   df.g <- df %>%
@@ -90,8 +87,6 @@ plotMatchLabel <- function(df, ylabel, ymin, ymax, yby,
     geom_bar(data=df.g, aes(x = Matching, y = DV, fill = Label), alpha = .6,
              stat="identity", width=0.7, linewidth=0.5, color="black", 
              position=position_dodge(.8)) +
-    # scale_fill_manual(values=c('#E69F00', '#56B4E9'),
-    #                   labels=c("Self", "Friend")) +
     scale_fill_manual(values=c('#DC3220', '#005AB5'),
                       labels=c("Self", "Friend")) +
     geom_segment(data=df.w, color="black", alpha = 0.3, 
@@ -111,27 +106,24 @@ plotMatchLabel <- function(df, ylabel, ymin, ymax, yby,
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank())
   
-  if (isRT) { # Boolean: Nonmatch - Match
+  if (OminusS) { # Boolean: Friend - Self
     df2.w <- df.w %>% 
-      mutate(Self = Nonmatch_Self - Match_Self,
-             Friend = Nonmatch_Friend - Match_Friend) %>% 
-      select(SN, Self, Friend)
+      mutate(Match = Match_Friend - Match_Self,
+             Nonmatch = Nonmatch_Friend - Nonmatch_Self) %>% 
+      select(SN, Match, Nonmatch)
   } else {
     df2.w <- df.w %>% 
-      mutate(Self = Match_Self - Nonmatch_Self,
-             Friend = Match_Friend - Nonmatch_Friend) %>% 
-      select(SN, Self, Friend)
+      mutate(Match = Match_Self - Match_Friend,
+             Nonmatch = Nonmatch_Self - Nonmatch_Friend) %>% 
+      select(SN, Match, Nonmatch)
   }
   
   df2 <- df2.w %>% 
-    pivot_longer(cols = c(Self, Friend), names_to = "Identity", values_to = "SPE") %>% 
-    mutate(Identity = factor(Identity, 
-                             labels = c("Self", "Friend"),
-                             levels = c("Self", "Friend")))
+    pivot_longer(cols = c(Match, Nonmatch), names_to = "Matching", values_to = "SPE")
   
   df2.g <- df2 %>% 
-    mutate(Identity = factor(Identity)) %>% 
-    Rmisc::summarySEwithin(measurevar = "SPE", withinvars = "Identity", idvar = "SN")
+    mutate(Matching = factor(Matching)) %>% 
+    Rmisc::summarySEwithin(measurevar = "SPE", withinvars = "Matching", idvar = "SN")
   
   moff <- 0.1
   doff <- 0.05
@@ -140,21 +132,20 @@ plotMatchLabel <- function(df, ylabel, ymin, ymax, yby,
     rep(runif(nrow(df2)/2, -doff, doff), each=2)
   
   F2 <- cbind(df2, vpd, dpd) %>% 
-    ggplot(aes(x = Identity, y = SPE, group = Identity)) + 
-    geom_pointrange(data=df2.g, aes(x = Identity, ymin = SPE-ci, ymax = SPE+ci),
+    ggplot(aes(x = Matching, y = SPE, group = Matching)) + 
+    geom_pointrange(data=df2.g, aes(x = Matching, ymin = SPE-ci, ymax = SPE+ci),
                     linewidth = 1, size = 0.5, color = "black") +
-    geom_point(data=df2.g, aes(x = Identity, y = SPE),
-               size=2, color = "black", show.legend = FALSE) +
+    geom_point(data=df2.g, aes(x = Matching, y = SPE),
+               size=3, color = "black", show.legend = FALSE) +
     geom_hline(yintercept = 0) +
-    geom_violinhalf(aes(x = vpd, y = SPE, group = Identity),
+    geom_violinhalf(aes(x = vpd, y = SPE, group = Matching),
                     flip = c(1,3), width = 0.7, fill = "gray70") + 
-    # geom_point(aes(x = dpd, y = SPE, group = SN), alpha = 0.3) +
     geom_line(aes(x = dpd, y = SPE, group = SN), color = "black", alpha = 0.3) +
-    labs(x = "Identity",
-         y = ifelse (isRT, "Nonmatch - Match", "Match - Nonmatch")) +
+    labs(x = "Matching",
+         y = ifelse (OminusS, # Boolean: Friend - Self
+                     "Friend - Self", "Self - Friend")) +
     coord_cartesian(ylim = c(ymin2, ymax2), clip = "on") +
-    scale_y_continuous(labels = scales::number_format(accuracy = flo),
-                       breaks=seq(ymin2, ymax2, by = yby2)) +
+    scale_y_continuous(breaks=seq(ymin2, ymax2, by = yby2)) +
     theme_bw(base_size = 18) +
     theme(panel.grid.major = element_blank(),
           panel.grid.minor = element_blank())
@@ -174,7 +165,7 @@ The current experiment was preregistered on the [Open Science Framework ](https:
 
 # Associative Learning Task
 
-The task was almost identical to thatin Experiment 1. Each trial presented a red or blue shape with a superimposed social label—“당신” (the Korean word for “You”) or “친구” (the Korean word for “Friend”). Participants were asked to judge whether the color of the shape matched the color that had been associated with the referent of the label (self or friend) prior to the experiment. Participants used both hands to make label-color matching responses: half pressed the leftmost button (of a 9-button response box) with the left hand for “Match” and the rightmost button with the right hand for “Nonmatch,” whereas the mapping was reversed for the other half of the participants. Accuracy was computed based on all responses, and response time (RT) was analyzed only for correct label-color matching responses.
+The task was almost identical to that in Experiment 1. Each trial presented a red or blue shape with a superimposed social label—“당신” (the Korean word for “You”) or “친구” (the Korean word for “Friend”). Participants were asked to judge whether the color of the shape matched the color that had been associated with the referent of the label (self or friend) prior to the experiment. Participants used both hands to make label-matching responses: half pressed the leftmost button (of a 9-button response box) with the left hand for “Match” and the rightmost button with the right hand for “Nonmatch,” whereas the mapping was reversed for the other half of the participants. Accuracy was computed based on all responses, and response times (RTs) were analyzed only for correct label-matching responses.
 
 ## Label-Matching Accuracy
 
@@ -198,58 +189,29 @@ l.acc <- lrn %>%
   summarise(Accuracy = mean(Correct)) %>% 
   ungroup()
 
-plotMatchLabel(l.acc, "Accuracy", 0.5, 1, .1, FALSE, -.3, .3, .1)
+plotMatchLabel(l.acc, "Accuracy", 0.5, 1, .1, FALSE, -.2, .3, .1)
 
 # Descriptive
 l.acc %>% group_by(Matching, Label) %>% 
   get_summary_stats(Accuracy, show = c("mean", "sd")) %>% 
   kable(digits = 2, format = "simple", caption = "Descriptive summary")
 
-# BF
-( bf.lAcc <- anovaBF(Accuracy ~ Matching*Label + SN, data = as.data.frame(l.acc), 
-                     whichRandom = "SN", iterations = nIter, progress = FALSE) )
+bias.acc <- l.acc %>% 
+  filter(Matching == "Match") %>% 
+  pivot_wider(id_cols = "SN", names_from = "Label", values_from = "Accuracy") %>% 
+  mutate(selfBias = Self - Friend) %>% 
+  select(SN, selfBias)
 
-# ANOVA
-cbind(
-  anova_test(
-    data = l.acc, dv = Accuracy, wid = SN,
-    within = c(Matching, Label),
-    effect.size = "pes") %>% 
-    get_anova_table(),
-  tibble(BF10 = c( exp((bf.lAcc[3]/bf.lAcc[2])@bayesFactor$bf), # Matching
-                   exp((bf.lAcc[3]/bf.lAcc[1])@bayesFactor$bf), # Label
-                   exp((bf.lAcc[4]/bf.lAcc[3])@bayesFactor$bf) ), # Matching x Label
-         BF01 = c( exp((bf.lAcc[2]/bf.lAcc[3])@bayesFactor$bf),
-                   exp((bf.lAcc[1]/bf.lAcc[3])@bayesFactor$bf),
-                   exp((bf.lAcc[3]/bf.lAcc[4])@bayesFactor$bf) ))) %>% 
-  kable(digits = c(0,0,0,3,8,0,4,3,8), format = "simple", caption = "ANOVA")
-
-# Post-hoc T
-dgT <- 3
-dgP <- 10
-dgM <- 4
-dgC <- 3
-dgD <- 3
-cbind(l.acc %>% 
-        group_by(Label) %>% 
-        t_test(Accuracy ~ Matching, ref.group = "Match", 
-               paired = TRUE, detailed = TRUE) %>% 
-        adjust_pvalue(method = "bonferroni") %>% 
-        add_significance("p.adj") %>% 
-        unite("Comparison", group1:group2, sep = " > ") %>% 
-        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
-                                 round(conf.high, digits = dgC), "]")) %>% 
-        rename('T' = statistic, M = estimate) %>% 
-        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
-               M, '95% CI'), 
-      l.acc %>% 
-        group_by(Label) %>% 
-        cohens_d(Accuracy ~ Matching, paired = TRUE, ref.group = "Match") %>% 
-        select("effsize", "magnitude") %>% 
-        rename("Cohen's d" = effsize)) %>% 
-  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
-        format = "simple", caption = "T-Test, Bonferroni Corrected")
+bias.acc %>% get_summary_stats(selfBias, show = c("mean", "sd")) %>% 
+  kable(digits = 2, format = "simple", caption = "Match:Self - Match:Friend")
 ```
+
+```{r, class.source = 'fold-show'}
+bf.acc <- ttestBF(x = bias.acc$selfBias, rscale = 0.707)
+bf.acc
+```
+
+The Bayes factor indicated that the data were more than `r format(extractBF(bf.acc)$bf[1], scientific = TRUE)` times more likely under the alternative hypothesis than under the null hypothesis.
 
 
 ## Label-Matching RT
@@ -308,82 +270,22 @@ l.rt %>% group_by(Matching, Label) %>%
   get_summary_stats(RT, show = c("mean", "sd")) %>% 
   kable(digits = 0, format = "simple", caption = "Descriptive summary")
 
-# BF
-( bf.lRT <- anovaBF(RT ~ Matching*Label + SN, data = as.data.frame(l.rt), 
-                    whichRandom = "SN", iterations = nIter, progress = FALSE) )
+bias.rt <- l.rt %>% 
+  filter(Matching == "Match") %>% 
+  pivot_wider(id_cols = "SN", names_from = "Label", values_from = "RT") %>% 
+  mutate(selfBias = Friend - Self) %>% 
+  select(SN, selfBias)
 
-# ANOVA
-cbind(
-  anova_test(
-    data = l.rt, dv = RT, wid = SN,
-    within = c(Matching, Label),
-    effect.size = "pes") %>% 
-    get_anova_table() ,
-  tibble(BF10 = c( exp((bf.lRT[3]/bf.lRT[2])@bayesFactor$bf),
-                   exp((bf.lRT[3]/bf.lRT[1])@bayesFactor$bf),
-                   exp((bf.lRT[4]/bf.lRT[3])@bayesFactor$bf) ),
-         BF01 = c( exp((bf.lRT[2]/bf.lRT[3])@bayesFactor$bf),
-                   exp((bf.lRT[1]/bf.lRT[3])@bayesFactor$bf),
-                   exp((bf.lRT[3]/bf.lRT[4])@bayesFactor$bf) ))) %>% 
-  kable(digits = c(0,0,0,3,10,0,3,3,10), format = "simple", caption = "ANOVA")
-
-# Post-hoc T
-dgT <- 3
-dgP <- 10
-dgM <- 0
-dgC <- 0
-dgD <- 3
-cbind(l.rt %>% 
-        group_by(Label) %>% 
-        t_test(RT ~ Matching, ref.group = "Nonmatch", 
-               paired = TRUE, detailed = TRUE) %>% 
-        adjust_pvalue(method = "bonferroni") %>% 
-        add_significance("p.adj") %>% 
-        unite("Comparison", group1:group2, sep = " > ") %>% 
-        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
-                                 round(conf.high, digits = dgC), "]")) %>% 
-        rename('T' = statistic, M = estimate) %>% 
-        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
-               M, '95% CI'), 
-      l.rt %>% 
-        group_by(Label) %>% 
-        cohens_d(RT ~ Matching, paired = TRUE, ref.group = "Nonmatch") %>% 
-        select("effsize", "magnitude") %>% 
-        rename("Cohen's d" = effsize)) %>% 
-  kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
-        format = "simple", caption = "T-Test, Bonferroni Corrected")
+bias.rt %>% get_summary_stats(selfBias, show = c("mean", "sd")) %>% 
+  kable(digits = 2, format = "simple", caption = "Match:Friend - Match:Self")
 ```
 
-
-## Label-Matching Self-Bias
-
-```{r}
-tmp <- cbind(
-  l.acc %>%
-    unite("temp", c("Matching", "Label")) %>%
-    pivot_wider(id_cols = SN, names_from = temp, values_from = Accuracy) %>%
-    mutate(Self = Match_Self - Nonmatch_Self,
-           Friend = Match_Friend - Nonmatch_Friend) %>%
-    select(SN, Self, Friend) %>%
-    mutate(bias = Self - Friend) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)),
-  l.rt %>%
-    unite("temp", c("Matching", "Label")) %>%
-    pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
-    mutate(Self = Nonmatch_Self - Match_Self,
-           Friend = Nonmatch_Friend - Match_Friend) %>%
-    select(SN, Self, Friend) %>%
-    mutate(bias = Self - Friend) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)))
-colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
-tmp %>% 
-  kable(digits = c(2,2,0,0), 
-        format = "simple", caption = "Self-bias @ label-color matching judgment")
+```{r, class.source = 'fold-show'}
+bf.rt <- ttestBF(x = bias.rt$selfBias, rscale = 0.707)
+bf.rt
 ```
 
-
+The Bayes factor indicated that the data were more than `r format(extractBF(bf.rt)$bf[1], scientific = TRUE)` times more likely under the alternative hypothesis than under the null hypothesis.
 
 <br>
 
@@ -512,39 +414,17 @@ t1 %>% group_by(Label) %>%
 bf1 <- ttestBF(t1.w$Self - t1.w$Friend,
                rscale = 0.707, # = 'medium',
                nullInterval = c(0, Inf))
+bf1
 1/bf1[1]
 ```
+
+The Bayes factor indicated that the data were more than `r 1/extractBF(bf1)$bf[1]` times more likely under the null hypothesis than under the directional alaternative hypothesis.
 
 ```{r, collapse=TRUE, fig.height=3}
 plot(bayestestR::bayesfactor_models(bf1[1])) + 
   scale_fill_pizza() +
   scale_fill_manual(values=c('#E69F00', '#56B4E9')) +
   theme(text = element_text(size = 18))
-```
-
-### T-Test
-
-```{r}
-dgT <- 3
-dgP <- 3
-dgM <- 0
-dgC <- 3
-dgD <- 3
-cbind(t1 %>% 
-        t_test(Precision ~ Label, ref.group = "Self", 
-               paired = TRUE, detailed = TRUE) %>% 
-        add_significance("p") %>% 
-        unite("Comparison", group1:group2, sep = " > ") %>% 
-        mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
-                                 round(conf.high, digits = dgC), "]")) %>% 
-        rename('T' = statistic, M = estimate) %>% 
-        select(Comparison, 'T', df, p, p.signif, M, '95% CI'), 
-      t1 %>% 
-        cohens_d(Precision ~ Label, paired = TRUE, ref.group = "Self") %>% 
-        select("effsize", "magnitude") %>% 
-        rename("Cohen's d" = effsize)) %>% 
-  kable(digits = c(0,dgT,0,dgP,0,dgM,0,dgD,0), 
-        format = "simple", caption = "T-Test")
 ```
 
 <br>
@@ -555,16 +435,17 @@ cbind(t1 %>%
 
 # Correlation
 
-Self-bias were computed separately for label-color matching RTs in the associative learning task and for precision in the working memory task. A Pearson correlation was then calculated between the two self-bias measures.
+Self-bias were computed separately for label-matching RTs in the associative learning task and for precision in the working memory task. 
+
+For label-matching RTs, self-bias was defined as the difference between the self and friend conditions on match trials, following prior research ([Yin et al., 2019](https://doi.org/10.1177/0956797618818483)). For WM precision, it was defined as the difference between the self and friend conditions.
+
+A Pearson correlation was then calculated between the two self-bias measures.
 
 ```{r, collapse=TRUE}
 lrn.matching <- l.rt %>% 
-  unite("temp", c("Matching", "Label")) %>% 
-  pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
-  mutate(Self = Nonmatch_Self - Match_Self,
-         Friend = Nonmatch_Friend - Match_Friend) %>%
-  select(SN, Self, Friend) %>% 
-  mutate(lrnLabel = Self - Friend) %>% 
+  filter(Matching == "Match") %>% 
+  pivot_wider(id_cols = SN, names_from = Label, values_from = RT) %>%
+  mutate(lrnLabel = Friend - Self) %>%
   select(SN, lrnLabel)
 
 tst.precision <- t1 %>% 
@@ -574,13 +455,21 @@ tst.precision <- t1 %>%
 
 spe.effects <- full_join(
   lrn.matching, tst.precision, by = 'SN') 
-spe.effects %>% print(n = Inf)
+# spe.effects %>% print(n = Inf)
+```
 
-headTail(spe.effects)
 
+```{r, class.source = 'fold-show'}
 # https://cran.r-project.org/web/packages/BayesFactor/vignettes/manual.html#lincor
-cor.test(x = spe.effects$lrnLabel, y = spe.effects$wmShape)
+bf2 <- correlationBF(x = spe.effects$lrnLabel, 
+                    y = spe.effects$wmShape, rscale = 0.707)
+bf2
+```
 
+The Bayes factor indicated that the data were more than `r 1/extractBF(bf2)$bf[1]` times more likely under the null hypothesis than under the directional alaternative hypothesis.
+
+```{r, collapse=TRUE}
+# cor.test(x = spe.effects$lrnLabel, y = spe.effects$wmShape)
 spe.effects %>% cor_test(lrnLabel, wmShape) %>% 
   mutate("95% CI" = paste0("[", round(conf.low, digits = 3), ", ",
                                  round(conf.high, digits = 3), "]")) %>%
@@ -588,14 +477,6 @@ spe.effects %>% cor_test(lrnLabel, wmShape) %>%
   rename(Variable1 = var1, Variable2 = var2, r = cor) %>% 
   kable(digits = 3, format = "simple", align = "llrrrrr", caption = "Correlation")
 ```
-
-
-```{r, class.source = 'fold-show'}
-bf2 <- correlationBF(x = spe.effects$lrnLabel, 
-                    y = spe.effects$wmShape, rscale = "medium")
-bf2
-```
-
 
 ```{r, collapse=TRUE}
 bf2 %>% bayestestR::describe_posterior()
@@ -610,7 +491,7 @@ C1 <- ggplot(spe.effects, aes(x=lrnLabel, y=wmShape)) +
         panel.grid.minor = element_blank(),
         aspect.ratio = 1) +
   annotate(geom = "text", x = 50, y = -2.2, hjust = 0, size = 5,
-           label = "paste(italic(r), \" = .05, \", italic(p), \" = .69\")", 
+           label = "paste(italic(r), \" = .21, \", italic(p), \" = .07\")", 
            parse = TRUE)
 C2 <- plot(bayestestR::bayesfactor_models(bf2)) + 
   scale_fill_pizza() +
@@ -619,8 +500,6 @@ C2 <- plot(bayestestR::bayesfactor_models(bf2)) +
 
 C1 + C2 + plot_layout(nrow = 1, widths = c(1.5, 1))
 ```
-
-
 
 
 ---
