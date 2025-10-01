@@ -58,8 +58,6 @@ rm_subject <- function(df, rx){
 single_raincloud_plot <- function(df, Y, xMin, xMax, xBy, xLab){
   df %>% ggplot(aes(x = 1, y = Y)) +
     geom_violinhalf(flip = c(1,3), width = 0.5, color = "grey70", fill = "gray70") +
-    # geom_half_violin(aes(y = Y), side = "r", 
-    #                  color = "grey70", fill = "grey70") +
     geom_point(aes(0.8, Y), size = 1.5,
                color = "grey50", fill = "grey50", alpha = .5,
                position = position_jitter(width = 0.15, height = 0)) +
@@ -81,7 +79,7 @@ single_raincloud_plot <- function(df, Y, xMin, xMax, xBy, xLab){
 
 # Plot for results
 plotMatchLabel <- function(df, ylabel, ymin, ymax, yby, 
-                           isRT, ymin2, ymax2, yby2, flo = 0.1) {
+                           OminusS, ymin2, ymax2, yby2) {
   names(df)[ncol(df)] <- "DV" # assuming DV on the last column
   
   df.g <- df %>%
@@ -101,8 +99,6 @@ plotMatchLabel <- function(df, ylabel, ymin, ymax, yby,
     geom_bar(data=df.g, aes(x = Matching, y = DV, fill = Label), alpha = .6,
              stat="identity", width=0.7, linewidth=0.5, color="black", 
              position=position_dodge(.8)) +
-    # scale_fill_manual(values=c('#E69F00', '#56B4E9'),
-    #                   labels=c("Self", "Stranger")) +
     scale_fill_manual(values=c('#DC3220', '#005AB5'),
                       labels=c("Self", "Stranger")) +
     geom_segment(data=df.w, color="black", alpha = 0.3, 
@@ -122,24 +118,24 @@ plotMatchLabel <- function(df, ylabel, ymin, ymax, yby,
           panel.grid.major = element_blank(),
           panel.grid.minor = element_blank())
   
-  if (isRT) { # Boolean: Nonmatch - Match
+  if (OminusS) { # Boolean: Stranger - Self
     df2.w <- df.w %>% 
-      mutate(Self = Nonmatch_Self - Match_Self,
-             Stranger = Nonmatch_Stranger - Match_Stranger) %>% 
-      select(SN, Self, Stranger)
+      mutate(Match = Match_Stranger - Match_Self,
+             Nonmatch = Nonmatch_Stranger - Nonmatch_Self) %>% 
+      select(SN, Match, Nonmatch)
   } else {
     df2.w <- df.w %>% 
-      mutate(Self = Match_Self - Nonmatch_Self,
-             Stranger = Match_Stranger - Nonmatch_Stranger) %>% 
-      select(SN, Self, Stranger)
+      mutate(Match = Match_Self - Match_Stranger,
+             Nonmatch = Nonmatch_Self - Nonmatch_Stranger) %>% 
+      select(SN, Match, Nonmatch)
   }
   
   df2 <- df2.w %>% 
-    pivot_longer(cols = c(Self, Stranger), names_to = "Identity", values_to = "SPE")
+    pivot_longer(cols = c(Match, Nonmatch), names_to = "Matching", values_to = "SPE")
   
   df2.g <- df2 %>% 
-    mutate(Identity = factor(Identity)) %>% 
-    Rmisc::summarySEwithin(measurevar = "SPE", withinvars = "Identity", idvar = "SN")
+    mutate(Matching = factor(Matching)) %>% 
+    Rmisc::summarySEwithin(measurevar = "SPE", withinvars = "Matching", idvar = "SN")
   
   moff <- 0.1
   doff <- 0.05
@@ -148,21 +144,20 @@ plotMatchLabel <- function(df, ylabel, ymin, ymax, yby,
     rep(runif(nrow(df2)/2, -doff, doff), each=2)
   
   F2 <- cbind(df2, vpd, dpd) %>% 
-    ggplot(aes(x = Identity, y = SPE, group = Identity)) + 
-    geom_pointrange(data=df2.g, aes(x = Identity, ymin = SPE-ci, ymax = SPE+ci),
+    ggplot(aes(x = Matching, y = SPE, group = Matching)) + 
+    geom_pointrange(data=df2.g, aes(x = Matching, ymin = SPE-ci, ymax = SPE+ci),
                     linewidth = 1, size = 0.5, color = "black") +
-    geom_point(data=df2.g, aes(x = Identity, y = SPE),
+    geom_point(data=df2.g, aes(x = Matching, y = SPE),
                size=3, color = "black", show.legend = FALSE) +
     geom_hline(yintercept = 0) +
-    geom_violinhalf(aes(x = vpd, y = SPE, group = Identity),
+    geom_violinhalf(aes(x = vpd, y = SPE, group = Matching),
                     flip = c(1,3), width = 0.7, fill = "gray70") + 
-    # geom_point(aes(x = dpd, y = SPE, group = SN), alpha = 0.3) +
     geom_line(aes(x = dpd, y = SPE, group = SN), color = "black", alpha = 0.3) +
-    labs(x = "Identity",
-         y = ifelse (isRT, "Nonmatch - Match", "Match - Nonmatch")) +
+    labs(x = "Matching",
+         y = ifelse (OminusS, # Boolean: Stranger - Self
+                     "Stranger - Self", "Self - Stranger")) +
     coord_cartesian(ylim = c(ymin2, ymax2), clip = "on") +
-    scale_y_continuous(labels = scales::number_format(accuracy = flo),
-                       breaks=seq(ymin2, ymax2, by = yby2)) +
+    scale_y_continuous(breaks=seq(ymin2, ymax2, by = yby2)) +
     theme_bw(base_size = 18) +
     theme(panel.grid.major = element_blank(),
           panel.grid.minor = element_blank())
@@ -192,8 +187,6 @@ plotOrderIdentity <- function(df, ylabel, ymin, ymax, yby,
     geom_bar(data=df.g, aes(x = Order, y = DV, fill = Identity), alpha = .6,
              stat="identity", width=0.7, linewidth=0.5, color="black", 
              position=position_dodge(.8)) +
-    # scale_fill_manual(values=c('#E69F00', '#56B4E9'),
-    #                   labels=c("Self", "Stranger")) +
     scale_fill_manual(values=c('#DC3220', '#005AB5'),
                       labels=c("Self", "Stranger")) +
     geom_segment(data=df.w, color="black", alpha = 0.3, 
@@ -247,7 +240,6 @@ plotOrderIdentity <- function(df, ylabel, ymin, ymax, yby,
     geom_hline(yintercept = 0) +
     geom_violinhalf(aes(x = vpd, y = SPE, group = Order),
                     flip = c(1,3), width = 0.7, fill = "gray70") + 
-    # geom_point(aes(x = dpd, y = SPE, group = SN), alpha = 0.3) +
     geom_line(aes(x = dpd, y = SPE, group = SN), color = "black", alpha = 0.3) +
     labs(x = "Order",
          y = ifelse (OminusS, "Stranger - Self", "Self - Stranger")) +
@@ -528,7 +520,7 @@ thresholds <- s.gt %>%
   summarise(Outlier = quantile(M, prob = .75) + 1.5 * IQR(M),
             Extreme = quantile(M, prob = .75) + 3 * IQR(M)) 
 Fo2 <- s.gt %>% 
-  single_raincloud_plot(.$M, 200, 1400, 200, "Label-Matching RT (ms)") + 
+  single_raincloud_plot(.$M, 200, 1400, 200, "Label-Matching RTs (ms)") + 
   geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
   geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
 
@@ -540,7 +532,7 @@ One subject (#1) showed outlier-level low accuracy. No subjects were excluded ba
 
 ## WM Task: Shape-Matching
 
-Responses are correct if participants pressed the 'Same' key when the probe matched either memory shape, or the 'Different' key otherwise.
+Responses are correct if participants pressed the 'Same' key when the probe matched either sample shape, or the 'Different' key otherwise.
 
 ```{r outlierTestDMS, collapse=TRUE, fig.height=2}
 # Data loading
@@ -610,7 +602,7 @@ thresholds <- dgt %>%
   summarise(Outlier = quantile(M, prob = .75) + 1.5 * IQR(M),
             Extreme = quantile(M, prob = .75) + 3 * IQR(M)) 
 Fo4 <- dgt %>% 
-  single_raincloud_plot(.$M, 200, 1400, 200, "Shape-Matching RT (ms)") + 
+  single_raincloud_plot(.$M, 200, 1400, 200, "Shape-Matching RTs (ms)") + 
   geom_hline(yintercept=thresholds$Outlier, linetype="dotted") +
   geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
 
@@ -676,7 +668,7 @@ thresholds <- dptg %>%
             OutlierU = quantile(M, prob = .75) + 1.5 * IQR(M),
             Extreme = quantile(M, prob = .75) + 3 * IQR(M)) 
 Fo6 <- dptg %>% 
-  single_raincloud_plot(.$M, 200, 1400, 200, "WM Label-Matching RT (ms)") + 
+  single_raincloud_plot(.$M, 200, 1400, 200, "WM Label-Matching RTs (ms)") + 
   geom_hline(yintercept=thresholds$OutlierL, linetype="dotted") +
   geom_hline(yintercept=thresholds$OutlierU, linetype="dotted") + 
   geom_hline(yintercept=thresholds$Extreme, linetype='dashed', color='red', linewidth=0.5)
@@ -711,8 +703,7 @@ In summary, one subject with low label-matching accuracy in the associative lear
 
 ## Label-Matching Accuracy
 
-In the left plot, Self vs. Stranger refers to the label. In the nonmatch trials, the label and the color referred to different persons; thus, the trials were classified based on the label. Following [Wade & Vickery (2017)](https://link.springer.com/article/10.3758/s13414-017-1307-8), congruency benefit was computed by comparing responses to match versus nonmatch trials for each label, thereby controlling for label processing speed. The right plot displays these values.
-We defined self-bias as the difference between the Self and Stranger conditions in the right plot.
+In the following plots, self and stranger refer to labels. Note that in match trials, the shape’s color and label denote the same identity, whereas in nonmatch trials, the color and label denote different identities. Following prior research ([Yin et al., 2019](https://doi.org/10.1177/0956797618818483)), self-bias was computed by comparing performance between the self and stranger conditions on match trials.
 
 ```{r LrnAcc, collapse=TRUE}
 length(unique(s$SN))
@@ -726,7 +717,7 @@ s.acc <- s %>%
   summarise(Accuracy = mean(Correct)) %>% 
   ungroup()
 
-plotMatchLabel(s.acc, "Accuracy", 0.5, 1, .1, FALSE, -.2, .2, .1, .1)
+plotMatchLabel(s.acc, "Accuracy", 0.5, 1, .1, FALSE, -.1, .3, .1)
 
 # Descriptive
 s.acc %>% group_by(Matching, Label) %>% 
@@ -755,13 +746,13 @@ cbind(
 
 # Post-hoc
 dgT <- 3
-dgP <- 5
+dgP <- 6
 dgM <- 3
 dgC <- 3
 dgD <- 3
 cbind(s.acc %>% 
-        group_by(Label) %>% 
-        t_test(Accuracy ~ Matching, ref.group = "Match", 
+        group_by(Matching) %>% 
+        t_test(Accuracy ~ Label, ref.group = "Self", 
                paired = TRUE, detailed = TRUE) %>% 
         adjust_pvalue(method = "bonferroni") %>% 
         add_significance("p.adj") %>% 
@@ -769,11 +760,11 @@ cbind(s.acc %>%
         mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
                                  round(conf.high, digits = dgC), "]")) %>% 
         rename('T' = statistic, M = estimate) %>% 
-        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
-               M, '95% CI'),
+        select(Matching, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+               M, '95% CI'), 
       s.acc %>% 
-        group_by(Label) %>% 
-        cohens_d(Accuracy ~ Matching, paired = TRUE, ref.group = "Match") %>% 
+        group_by(Matching) %>% 
+        cohens_d(Accuracy ~ Label, paired = TRUE, ref.group = "Self") %>% 
         select("effsize", "magnitude") %>% 
         rename("Cohen's d" = effsize)) %>% 
   kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
@@ -783,8 +774,6 @@ cbind(s.acc %>%
 ---
 
 ## Label-Matching RT
-
-As with accuracy, we defined self-bias as the difference between the Self and Stranger conditions in the right plot.
 
 ```{r LrnRT, collapse=TRUE}
 range(s$RT[s$Correct==1])
@@ -823,7 +812,7 @@ s.rt <- st %>%
   summarise(RT = mean(RT)) %>% 
   ungroup()
 
-plotMatchLabel(s.rt, "Response Time (ms)", 500, 1500, 200, TRUE, -100, 400, 100, 1)
+plotMatchLabel(s.rt, "Response Time (ms)", 500, 1500, 200, TRUE, -200, 500, 100)
 
 # Descriptive
 s.rt %>% group_by(Matching, Label) %>% 
@@ -852,13 +841,13 @@ cbind(
 
 # Post-hoc
 dgT <- 3
-dgP <- 9
+dgP <- 11
 dgM <- 0
 dgC <- 0
 dgD <- 3
 cbind(s.rt %>% 
-        group_by(Label) %>% 
-        t_test(RT ~ Matching, ref.group = "Nonmatch", 
+        group_by(Matching) %>% 
+        t_test(RT ~ Label, ref.group = "Stranger", 
                paired = TRUE, detailed = TRUE) %>% 
         adjust_pvalue(method = "bonferroni") %>% 
         add_significance("p.adj") %>% 
@@ -866,11 +855,11 @@ cbind(s.rt %>%
         mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
                                  round(conf.high, digits = dgC), "]")) %>% 
         rename('T' = statistic, M = estimate) %>% 
-        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+        select(Matching, Comparison, 'T', df, p, p.adj, p.adj.signif, 
                M, '95% CI'), 
       s.rt %>% 
-        group_by(Label) %>% 
-        cohens_d(RT ~ Matching, paired = TRUE, ref.group = "Nonmatch") %>% 
+        group_by(Matching) %>% 
+        cohens_d(RT ~ Label, paired = TRUE, ref.group = "Stranger") %>% 
         select("effsize", "magnitude") %>% 
         rename("Cohen's d" = effsize)) %>% 
   kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
@@ -878,38 +867,6 @@ cbind(s.rt %>%
 ```
 
 `r round(pTrim1, digits = 2)`% of RTs were removed as extreme values.
-
----
-
-## Label-Matching Self-Bias
-
-As described above, self-bias was calculated from the congruency benefits of accuracy and RT [(Wade & Vickery, 2017)](https://link.springer.com/article/10.3758/s13414-017-1307-8).
-
-```{r lrnBias, collapse=TRUE}
-tmp <- cbind(
-  s.acc %>%
-    unite("temp", c("Matching", "Label")) %>%
-    pivot_wider(id_cols = SN, names_from = temp, values_from = Accuracy) %>%
-    mutate(Self = Match_Self - Nonmatch_Self,
-           Stranger = Match_Stranger - Nonmatch_Stranger) %>%
-    select(SN, Self, Stranger) %>%
-    mutate(bias = Self - Stranger) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)),
-  s.rt %>%
-    unite("temp", c("Matching", "Label")) %>%
-    pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
-    mutate(Self = Nonmatch_Self - Match_Self,
-           Stranger = Nonmatch_Stranger - Match_Stranger) %>%
-    select(SN, Self, Stranger) %>%
-    mutate(bias = Self - Stranger) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)))
-colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
-tmp %>% 
-  kable(digits = c(2,2,0,0), 
-        format = "simple", caption = "Self-bias @ label-matching judgment")
-```
 
 
 <br><br>
@@ -924,7 +881,7 @@ tmp %>%
 
 ## DMS Accuracy & RT
 
-The delayed match-to-sample judgment was analyzed by dividing the trials into Same trials, where the probe matched one of the two samples, and Different trials, where the probe matched neither sample.
+The delayed match-to-sample judgment was analyzed by dividing the trials into same trials, where the probe matched one of the two samples, and Different trials, where the probe matched neither sample.
 
 ```{r DMS, collapse=TRUE}
 dc <- d %>% filter(Screen == "probe") %>%
@@ -960,7 +917,9 @@ rbind(
 
 The key dependent measure was RT on correct **shape-probe-match trials**, referring to trials where the probe matched one of the two sample shapes in working memory ([Yin et al.](https://doi.org/10.1177/0956797618818483)).
 
-In the right plot, the Y-axis represents self-bias. The average of the First and Second conditions was defined as self-bias in the WM task.
+Shape-matching responses were classified according to two factors: identity and order. Identity refers to the social label associated with the color of the sample that matched the probe shape. Note that no labels were presented on the screen when these responses were collected. Order indicates whether the sample shape that matched the probe appeared first or second.
+
+In this task, self-bias was defined as the difference in performance between the self and stranger conditions, averaged across the two order conditions.
 
 ```{r shapeAcc, collapse=TRUE}
 d.same <- d %>% 
@@ -1129,36 +1088,6 @@ cbind(dst %>%
 
 `r round(pTrim3, digits = 2)`% of RTs were removed as extreme values.
 
----
-
-## Shape-Matching Self-bias 
-
-Self-bias was defined as the average of the First and Second conditions.
-
-```{r tstShapeBias, collapse=TRUE}
-tmp <- cbind(
-  dsa %>%
-    group_by(SN, Identity) %>%
-    summarise(value = mean(Accuracy)) %>%
-    ungroup() %>% 
-    pivot_wider(id_cols = SN, names_from = Identity, values_from = value) %>%
-    mutate(bias = Self - Stranger) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)),
-  dst %>%
-    group_by(SN, Identity) %>%
-    summarise(value = mean(RT)) %>%
-    ungroup() %>% 
-    pivot_wider(id_cols = SN, names_from = Identity, values_from = value) %>%
-    mutate(bias = Stranger - Self) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)))
-colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
-tmp %>% 
-  kable(digits = c(2,2,0,0), 
-        format = "simple", caption = "Self-bias @ WM shape-matching judgment")
-```
-
 
 <br><br>
 
@@ -1188,7 +1117,7 @@ dgs <- d.spe %>%
   summarise(Accuracy = mean(Correct)) %>% 
   ungroup()
 
-plotMatchLabel(dgs, "Accuracy", 0.5, 1, .1, FALSE, -0.3, 0.4, .1, .1)
+plotMatchLabel(dgs, "Accuracy", 0.5, 1, .1, FALSE, -.2, .4, .1)
 
 # Descriptive
 dgs %>% group_by(Matching, Label) %>% 
@@ -1222,8 +1151,8 @@ dgM <- 3
 dgC <- 3
 dgD <- 3  
 cbind(dgs %>% 
-        group_by(Label) %>% 
-        t_test(Accuracy ~ Matching, ref.group = "Match", 
+        group_by(Matching) %>% 
+        t_test(Accuracy ~ Label, ref.group = "Self", 
                paired = TRUE, detailed = TRUE) %>% 
         adjust_pvalue(method = "bonferroni") %>% 
         add_significance("p.adj") %>% 
@@ -1231,11 +1160,11 @@ cbind(dgs %>%
         mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
                                  round(conf.high, digits = dgC), "]")) %>% 
         rename('T' = statistic, M = estimate) %>% 
-        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+        select(Matching, Comparison, 'T', df, p, p.adj, p.adj.signif, 
                M, '95% CI'), 
       dgs %>% 
-        group_by(Label) %>% 
-        cohens_d(Accuracy ~ Matching, paired = TRUE, ref.group = "Match") %>% 
+        group_by(Matching) %>% 
+        cohens_d(Accuracy ~ Label, paired = TRUE, ref.group = "Self") %>% 
         select("effsize", "magnitude") %>% 
         rename("Cohen's d" = effsize)) %>% 
   kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
@@ -1285,7 +1214,7 @@ dpt <- d.spe.rt %>%
   summarise(RT = mean(RT)) %>% 
   ungroup()
 
-plotMatchLabel(dpt, "Response Time (ms)", 400, 1200, 200, TRUE, -200, 400, 100, 1)
+plotMatchLabel(dpt, "Response Time (ms)", 400, 1200, 200, TRUE, -200, 400, 100)
 
 # Descriptive
 dpt %>% group_by(Matching, Label) %>% 
@@ -1314,13 +1243,13 @@ cbind(
 
 # Post-hoc
 dgT <- 3
-dgP <- 5
+dgP <- 3
 dgM <- 0
 dgC <- 0
 dgD <- 3
 cbind(dpt %>% 
-        group_by(Label) %>% 
-        t_test(RT ~ Matching, ref.group = "Nonmatch", 
+        group_by(Matching) %>% 
+        t_test(RT ~ Label, ref.group = "Stranger", 
                paired = TRUE, detailed = TRUE) %>% 
         adjust_pvalue(method = "bonferroni") %>% 
         add_significance("p.adj") %>% 
@@ -1328,11 +1257,11 @@ cbind(dpt %>%
         mutate("95% CI" = paste0("[", round(conf.low, digits = dgC), ", ",
                                  round(conf.high, digits = dgC), "]")) %>% 
         rename('T' = statistic, M = estimate) %>% 
-        select(Label, Comparison, 'T', df, p, p.adj, p.adj.signif, 
+        select(Matching, Comparison, 'T', df, p, p.adj, p.adj.signif, 
                M, '95% CI'), 
       dpt %>% 
-        group_by(Label) %>% 
-        cohens_d(RT ~ Matching, paired = TRUE, ref.group = "Nonmatch") %>% 
+        group_by(Matching) %>% 
+        cohens_d(RT ~ Label, paired = TRUE, ref.group = "Stranger") %>% 
         select("effsize", "magnitude") %>% 
         rename("Cohen's d" = effsize)) %>% 
   kable(digits = c(0,0,dgT,0,dgP,dgP,0,dgM,0,dgD,0), 
@@ -1341,35 +1270,6 @@ cbind(dpt %>%
 
 `r round(pTrim4, digits = 2)`% of RTs were removed as extreme values.
 
----
-
-## Label-Matching Self-bias
-
-```{r tstLabelBias, collapse=TRUE}
-tmp <- cbind(
-  dgs %>%
-    unite("temp", c("Matching", "Label")) %>%
-    pivot_wider(id_cols = SN, names_from = temp, values_from = Accuracy) %>%
-    mutate(Self = Match_Self - Nonmatch_Self,
-           Stranger = Match_Stranger - Nonmatch_Stranger) %>%
-    select(SN, Self, Stranger) %>%
-    mutate(bias = Self - Stranger) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)),
-  dpt %>%
-    unite("temp", c("Matching", "Label")) %>%
-    pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
-    mutate(Self = Nonmatch_Self - Match_Self,
-           Stranger = Nonmatch_Stranger - Match_Stranger) %>%
-    select(SN, Self, Stranger) %>%
-    mutate(bias = Self - Stranger) %>%
-    select(SN, bias) %>% 
-    summarise(Mean = mean(bias), SD = sd(bias)))
-colnames(tmp) <- c("M_accuracy", "SD_accuracy", "M_rt", "SD_rt")
-tmp %>% 
-  kable(digits = c(2,2,0,0), 
-        format = "simple", caption = "Self-bias @ WM label-color matching judgment")
-```
 
 <br><br>
 
@@ -1385,32 +1285,27 @@ We computed the correlations among self-bias scores derived from label-matching 
 ```{r, collapse=TRUE, eval=TRUE, fig.height=6}
 # Associative Learning Task: Label-Matching
 asc.effect <- s.rt %>%
-  unite("temp", c("Matching", "Label")) %>%
-  pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
-  mutate(Self = Nonmatch_Self - Match_Self,
-         Stranger = Nonmatch_Stranger - Match_Stranger) %>%
-  select(SN, Self, Stranger) %>% 
-  mutate(lrnLabel = Self - Stranger) %>% 
+  filter(Matching == "Match") %>% 
+  pivot_wider(id_cols = SN, names_from = Label, values_from = RT) %>%
+  mutate(lrnLabel = Stranger - Self) %>%
   select(SN, lrnLabel)
 
 # Working Memory Task: Shape-Matching 
-shape.effect <- dst %>% 
-  group_by(SN, Identity) %>% 
-  summarise(value = mean(RT)) %>% 
-  ungroup() %>% 
-  pivot_wider(id_cols = SN, names_from = Identity, values_from = value) %>% 
-  mutate(wmShape = Stranger - Self) %>% 
+shape.effect <- dst %>%
+  group_by(SN, Identity) %>%
+  summarise(value = mean(RT)) %>%
+  ungroup() %>%
+  pivot_wider(id_cols = SN, names_from = Identity, values_from = value) %>%
+  mutate(wmShape = Stranger - Self) %>%
   select(SN, wmShape)
 
 # Working Memory Task: Label-Matching
 tst.effect <- dpt %>%
-  unite("temp", c("Matching", "Label")) %>%
-  pivot_wider(id_cols = SN, names_from = temp, values_from = RT) %>%
-  mutate(Self = Nonmatch_Self - Match_Self,
-         Stranger = Nonmatch_Stranger - Match_Stranger) %>%
-  select(SN, Self, Stranger) %>% 
-  mutate(wmLabel = Self - Stranger) %>% 
+  filter(Matching == "Match") %>% 
+  pivot_wider(id_cols = SN, names_from = Label, values_from = RT) %>%
+  mutate(wmLabel = Stranger - Self) %>%
   select(SN, wmLabel)
+
 
 self.bias <- full_join(
   full_join(asc.effect, shape.effect, by = 'SN'),
